@@ -94,7 +94,7 @@ struct ModApiData {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-struct ModRelease {
+pub(crate) struct ModRelease {
     mainfile: String, // Full URI to download file - always respect full URIs returned by API
 }
 

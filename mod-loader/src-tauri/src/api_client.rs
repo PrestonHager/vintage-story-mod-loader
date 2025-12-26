@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use serde_json::Value;
 
 const MOD_DB_BASE_URL: &str = "https://mods.vintagestory.at";
 

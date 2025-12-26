@@ -65,7 +65,11 @@ impl ModPack {
         }
         if let Some(ref summary) = self.metadata.summary {
             if summary.len() > 100 {
-                return Err(ModPackError::Validation("Summary must be 100 characters or less".to_string()));
+                if strict {
+                    return Err(ModPackError::Validation("Summary must be 100 characters or less".to_string()));
+                } else {
+                    eprintln!("[validate] WARNING: Summary exceeds 100 characters ({} chars). This is allowed for imports but may cause issues when submitting to the mod database.", summary.len());
+                }
             }
         }
         Ok(())

@@ -1,6 +1,82 @@
 // API client for downloading mods directly
-// The mod database API is not reliable, so we construct download URLs directly
-// Format: https://mods.vintagestory.at/download/<modid>_<version>.zip
+// The mod database API is not reliable, so we scrape mod pages to get download URLs
+// Format: https://mods.vintagestory.at/download/<number>/<name>_<version>.zip
+
+#[tauri::command]
+pub async fn get_mod_download_url(mod_id: String, mod_url: Option<String>) -> Result<String, String> {
+    use regex::Regex;
+    
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+    
+    // Try to construct the mod page URL
+    let page_url = if let Some(url) = mod_url {
+        // If it's an API URL, convert to page URL
+        if url.contains("/api/mods/") {
+            let mod_id_from_url = url.split("/api/mods/").last().unwrap_or(&mod_id);
+            format!("https://mods.vintagestory.at/show/mod/{}", mod_id_from_url)
+        } else if url.contains("/show/mod/") {
+            url
+        } else if url.contains("mods.vintagestory.at") {
+            url
+        } else {
+            format!("https://mods.vintagestory.at/show/mod/{}", mod_id)
+        }
+    } else {
+        format!("https://mods.vintagestory.at/show/mod/{}", mod_id)
+    };
+    
+    eprintln!("[get_mod_download_url] Fetching mod page: {}", page_url);
+    
+    let response = client
+        .get(&page_url)
+        .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch mod page: {}", e))?;
+    
+    if !response.status().is_success() {
+        return Err(format!("Failed to fetch mod page: {}", response.status()));
+    }
+    
+    let html = response.text().await
+        .map_err(|e| format!("Failed to read mod page: {}", e))?;
+    
+    // Look for download links in the HTML
+    // Pattern: /download/<number>/<filename>
+    let download_pattern = Regex::new(r#"/download/(\d+)/[^"'\s]+\.(zip|tar|tar\.gz)"#)
+        .map_err(|e| format!("Failed to create regex: {}", e))?;
+    
+    if let Some(captures) = download_pattern.captures(&html) {
+        let number = captures.get(1).unwrap().as_str();
+        let filename = captures.get(0).unwrap().as_str().trim_start_matches("/download/");
+        let download_url = format!("https://mods.vintagestory.at/download/{}", filename);
+        eprintln!("[get_mod_download_url] Found download URL: {}", download_url);
+        return Ok(download_url);
+    }
+    
+    // Try alternative patterns
+    let alt_pattern = Regex::new(r#"href=["']([^"']*download[^"']*\.(zip|tar|tar\.gz))"#)
+        .map_err(|e| format!("Failed to create alt regex: {}", e))?;
+    
+    for cap in alt_pattern.captures_iter(&html) {
+        if let Some(url_match) = cap.get(1) {
+            let mut url = url_match.as_str().to_string();
+            // Make absolute if relative
+            if url.starts_with("/") {
+                url = format!("https://mods.vintagestory.at{}", url);
+            } else if !url.starts_with("http") {
+                url = format!("https://mods.vintagestory.at/{}", url);
+            }
+            eprintln!("[get_mod_download_url] Found download URL (alt): {}", url);
+            return Ok(url);
+        }
+    }
+    
+    Err(format!("Could not find download URL on mod page for {}", mod_id))
+}
 
 #[tauri::command]
 pub async fn download_mod(mod_id: String, download_url: String, mods_path: String) -> Result<String, String> {

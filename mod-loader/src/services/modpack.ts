@@ -110,31 +110,25 @@ export async function applyModPack(
 ): Promise<ApplyModPackResult> {
   const { showToast, onProgress, onSuccess, onFailed, onSkipped, abortSignal } = options;
   // Download missing mods and enable all mods in pack
-  const { downloadMod } = await import("./api");
+  const { downloadMod, getModDownloadUrl } = await import("./api");
   const { invoke } = await import("@tauri-apps/api/core");
   
-  // Helper function to construct download URL from mod info
-  function constructDownloadUrl(modId: string, version: string, url?: string): string | null {
+  // Helper function to get download URL from mod page
+  async function getDownloadUrl(modId: string, version: string, url?: string): Promise<string | null> {
     // If URL is already a direct download URL, use it
     if (url && url.includes('/download/') && (url.endsWith('.zip') || url.endsWith('.tar') || url.endsWith('.tar.gz'))) {
       return url;
     }
     
-    // Try to construct URL from mod ID and version
-    // Format: https://mods.vintagestory.at/download/<number>/<name>_<version>.zip
-    // Since we don't know the number, we'll try constructing without it
-    // The mod database sometimes uses: https://mods.vintagestory.at/download/<name>_<version>.zip
-    
-    // Clean up mod ID and version for URL
-    // Keep only alphanumeric, dots, dashes, underscores
-    const cleanModId = modId.replace(/[^a-zA-Z0-9._-]/g, '').toLowerCase();
-    const cleanVersion = version === "unknown" ? "" : version.replace(/[^a-zA-Z0-9._-]/g, '');
-    
-    // Construct URL: if version exists, use format <name>_<version>.zip, otherwise just <name>.zip
-    if (cleanVersion) {
-      return `https://mods.vintagestory.at/download/${cleanModId}_${cleanVersion}.zip`;
-    } else {
-      return `https://mods.vintagestory.at/download/${cleanModId}.zip`;
+    // Try to fetch the download URL from the mod page
+    try {
+      console.log(`[getDownloadUrl] Fetching download URL for ${modId} from mod page...`);
+      const downloadUrl = await getModDownloadUrl(modId, url);
+      console.log(`[getDownloadUrl] Got download URL for ${modId}: ${downloadUrl}`);
+      return downloadUrl;
+    } catch (error) {
+      console.warn(`[getDownloadUrl] Failed to get download URL for ${modId}:`, error);
+      return null;
     }
   }
 
@@ -189,16 +183,22 @@ export async function applyModPack(
       const isInstalled = modList.some(m => m.id === modPackMod.id);
 
       if (!isInstalled) {
-        // Construct download URL from mod pack data
+        // Get download URL from mod page
         let downloadUrl: string | null = null;
         
-        // Try to construct URL from mod pack data
-        downloadUrl = constructDownloadUrl(modPackMod.id, modPackMod.version, modPackMod.url);
+        // Check for cancellation before fetching download URL
+        if (abortSignal?.aborted) {
+          console.log("[applyModPack] Application cancelled by user");
+          break;
+        }
+        
+        // Try to get download URL from mod page
+        downloadUrl = await getDownloadUrl(modPackMod.id, modPackMod.version, modPackMod.url);
         
         if (!downloadUrl) {
-          console.warn(`[applyModPack] Could not construct download URL for ${modPackMod.id}`);
+          console.warn(`[applyModPack] Could not get download URL for ${modPackMod.id}`);
         } else {
-          console.log(`[applyModPack] Constructed download URL for ${modPackMod.id}: ${downloadUrl}`);
+          console.log(`[applyModPack] Got download URL for ${modPackMod.id}: ${downloadUrl}`);
         }
 
         if (downloadUrl && downloadUrl.trim() !== '') {

@@ -5,12 +5,85 @@
 // Response format: JSON with statuscode property and mod.releases[0].mainfile containing the download URL
 // API docs: http://mods.vintagestory.at/api
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
+
+// Custom deserializer for statuscode that can handle both string and number
+fn deserialize_statuscode<'de, D>(deserializer: D) -> Result<Option<u16>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use serde::de::{self, Visitor};
+    use std::fmt;
+
+    struct StatusCodeVisitor;
+
+    impl<'de> Visitor<'de> for StatusCodeVisitor {
+        type Value = Option<u16>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a string or number representing an HTTP status code")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            value.parse::<u16>()
+                .map(Some)
+                .map_err(|_| E::custom(format!("invalid status code string: {}", value)))
+        }
+
+        fn visit_u16<E>(self, value: u16) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(Some(value))
+        }
+
+        fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            if value <= u16::MAX as u64 {
+                Ok(Some(value as u16))
+            } else {
+                Err(E::custom(format!("status code out of range: {}", value)))
+            }
+        }
+
+        fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            if value >= 0 && value <= u16::MAX as i64 {
+                Ok(Some(value as u16))
+            } else {
+                Err(E::custom(format!("status code out of range: {}", value)))
+            }
+        }
+
+        fn visit_none<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+
+        fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            deserializer.deserialize_any(StatusCodeVisitor)
+        }
+    }
+
+    deserializer.deserialize_any(StatusCodeVisitor)
+}
 
 #[derive(Debug, Deserialize)]
 struct ModApiResponse {
-    #[serde(rename = "statuscode")]
-    status_code: Option<u16>, // HTTP status code from API response
+    #[serde(rename = "statuscode", deserialize_with = "deserialize_statuscode")]
+    status_code: Option<u16>, // HTTP status code from API response (can be string or number)
     #[serde(rename = "mod")]
     mod_data: Option<ModApiData>, // Optional because API may return error
 }
@@ -189,7 +262,7 @@ pub async fn get_mod_download_url(mod_id: String, mod_url: Option<String>) -> Re
 // Structures for mod search API response
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ModSearchResult {
-    #[serde(rename = "statuscode")]
+    #[serde(rename = "statuscode", deserialize_with = "deserialize_statuscode")]
     status_code: Option<u16>,
     pub mods: Vec<ModSearchItem>,
 }

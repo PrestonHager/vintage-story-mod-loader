@@ -41,13 +41,15 @@ Download the `.AppImage` or `.deb` package from the [Releases](https://github.co
 git clone https://github.com/PrestonHager/vintage-story-mod-loader.git
 cd vintage-story-mod-loader
 
-# Install dependencies
+# Install dependencies (must be in mod-loader directory)
 cd mod-loader
 npm install
 
-# Run in development mode
+# Run in development mode (must be in mod-loader directory)
 npm run dev
 ```
+
+**Note:** All npm commands must be run from the `mod-loader/` directory, not the project root.
 
 ### Building
 

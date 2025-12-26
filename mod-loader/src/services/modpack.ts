@@ -91,11 +91,21 @@ export interface ApplyModPackResult {
   skipped: number;
 }
 
+export interface ApplyModPackOptions {
+  showToast?: (message: string, type?: "success" | "error" | "warning" | "info", duration?: number) => void;
+  onProgress?: (currentIndex: number, total: number, currentModId: string | null) => void;
+  onSuccess?: (modId: string) => void;
+  onFailed?: (modId: string, error: string) => void;
+  onSkipped?: (modId: string) => void;
+  abortSignal?: AbortSignal;
+}
+
 export async function applyModPack(
   pack: ModPack,
   modsPath: string,
-  showToast?: (message: string, type?: "success" | "error" | "warning" | "info", duration?: number) => void
+  options: ApplyModPackOptions = {}
 ): Promise<ApplyModPackResult> {
+  const { showToast, onProgress, onSuccess, onFailed, onSkipped, abortSignal } = options;
   // Download missing mods and enable all mods in pack
   const { getModDetails, downloadMod } = await import("./api");
   const { invoke } = await import("@tauri-apps/api/core");
@@ -106,8 +116,19 @@ export async function applyModPack(
     skipped: 0,
   };
 
-  for (const modPackMod of pack.mods) {
+  for (let i = 0; i < pack.mods.length; i++) {
+    const modPackMod = pack.mods[i];
+    
+    // Check for cancellation
+    if (abortSignal?.aborted) {
+      console.log("[applyModPack] Application cancelled by user");
+      break;
+    }
+
     try {
+      // Update progress
+      onProgress?.(i, pack.mods.length, modPackMod.id);
+
       // Check if mod is already installed
       const modList = await invoke<any[]>("get_mod_list", { modsPath });
       const isInstalled = modList.some(m => m.id === modPackMod.id);
@@ -151,37 +172,46 @@ export async function applyModPack(
             const errorMsg = error instanceof Error ? error.message : String(error);
             console.error(`[applyModPack] Failed to download ${modPackMod.id}:`, error);
             showToast?.(`Failed to download ${modPackMod.id}: ${errorMsg}`, "error", 6000);
+            onFailed?.(modPackMod.id, errorMsg);
             result.failed++;
             continue; // Skip enabling if download failed
           }
         } else {
           console.warn(`[applyModPack] No download URL available for ${modPackMod.id}, skipping download`);
           showToast?.(`No download URL available for ${modPackMod.id}`, "warning", 5000);
+          onSkipped?.(modPackMod.id);
           result.skipped++;
           // Still try to enable if it might already be installed
         }
       } else {
         console.log(`[applyModPack] Mod ${modPackMod.id} is already installed`);
+        onSkipped?.(modPackMod.id);
         result.skipped++;
       }
 
       // Enable mod
       try {
         await invoke("enable_mods", { modsPath, modIds: [modPackMod.id] });
+        onSuccess?.(modPackMod.id);
         result.success++;
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         console.error(`[applyModPack] Failed to enable ${modPackMod.id}:`, error);
         showToast?.(`Failed to enable ${modPackMod.id}: ${errorMsg}`, "error", 6000);
+        onFailed?.(modPackMod.id, errorMsg);
         result.failed++;
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`Failed to process mod ${modPackMod.id}:`, error);
-      showToast?.(`Failed to process ${modPackMod.id}: ${errorMsg}`, "error", 6000);
+      showToast?.(`Failed to process mod ${modPackMod.id}: ${errorMsg}`, "error", 6000);
+      onFailed?.(modPackMod.id, errorMsg);
       result.failed++;
     }
   }
+
+  // Final progress update
+  onProgress?.(pack.mods.length, pack.mods.length, null);
 
   return result;
 }

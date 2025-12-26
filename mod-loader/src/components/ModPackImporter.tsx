@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { importModPack, applyModPack } from "../services/modpack";
 import { getSettings } from "../services/storage";
 import { invoke } from "@tauri-apps/api/core";
 import type { ModPack } from "../types/mod";
 import { useToast } from "./Toast";
+import { useModPackApplication } from "../contexts/ModPackApplicationContext";
 
 export default function ModPackImporter() {
   const [modPack, setModPack] = useState<ModPack | null>(null);
   const [loading, setLoading] = useState(false);
-  const [applying, setApplying] = useState(false);
   const { showToast } = useToast();
+  const { progress, startApplication, updateProgress, cancelApplication, reset } = useModPackApplication();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   async function handleImport() {
     try {
@@ -47,15 +49,54 @@ export default function ModPackImporter() {
     }
   }
 
+  // Sync local modPack with context if it exists
+  useEffect(() => {
+    if (progress.modPack && !modPack) {
+      setModPack(progress.modPack);
+    }
+  }, [progress.modPack, modPack]);
+
   async function handleApply() {
     if (!modPack) return;
 
+    // Create abort controller for cancellation
+    abortControllerRef.current = new AbortController();
+    
     try {
-      setApplying(true);
+      startApplication(modPack);
       const settings = await getSettings();
       const modsPath = settings.mods_path || await invoke<string>("get_vintage_story_path");
-      const result = await applyModPack(modPack, modsPath, showToast);
-      if (result.success > 0 || result.failed === 0) {
+      
+      const result = await applyModPack(modPack, modsPath, {
+        showToast,
+        abortSignal: abortControllerRef.current.signal,
+        onProgress: (currentIndex, total, currentModId) => {
+          updateProgress({
+            currentModIndex: currentIndex,
+            totalMods: total,
+            currentModId,
+          });
+        },
+        onSuccess: (modId) => {
+          updateProgress((prev) => ({
+            success: prev.success + 1,
+          }));
+        },
+        onFailed: (modId, error) => {
+          updateProgress((prev) => ({
+            failed: prev.failed + 1,
+          }));
+        },
+        onSkipped: (modId) => {
+          updateProgress((prev) => ({
+            skipped: prev.skipped + 1,
+          }));
+        },
+      });
+
+      if (abortControllerRef.current.signal.aborted) {
+        showToast("Mod pack application cancelled", "warning");
+      } else if (result.success > 0 || result.failed === 0) {
         showToast(`Mod pack applied successfully! ${result.success} mods processed.`, "success");
       } else {
         showToast(`Mod pack partially applied. ${result.success} succeeded, ${result.failed} failed.`, "warning", 8000);
@@ -63,9 +104,12 @@ export default function ModPackImporter() {
     } catch (error) {
       console.error("Failed to apply mod pack:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      showToast(`Failed to apply mod pack: ${errorMessage}`, "error", 8000);
+      if (!abortControllerRef.current?.signal.aborted) {
+        showToast(`Failed to apply mod pack: ${errorMessage}`, "error", 8000);
+      }
     } finally {
-      setApplying(false);
+      updateProgress({ isRunning: false });
+      abortControllerRef.current = null;
     }
   }
 
@@ -89,9 +133,25 @@ export default function ModPackImporter() {
               <li key={idx}>{mod.id} ({mod.version})</li>
             ))}
           </ul>
-          <button onClick={handleApply} disabled={applying} style={{ marginTop: "1rem" }}>
-            {applying ? "Applying..." : "Apply Mod Pack"}
+          <button 
+            onClick={handleApply} 
+            disabled={progress.isRunning} 
+            style={{ marginTop: "1rem" }}
+          >
+            {progress.isRunning ? "Applying..." : "Apply Mod Pack"}
           </button>
+          {progress.isRunning && (
+            <div style={{ marginTop: "1rem", padding: "12px", backgroundColor: "var(--bg-secondary, #f5f5f5)", borderRadius: "4px" }}>
+              <p style={{ margin: "0 0 8px 0", fontSize: "14px" }}>
+                Progress: {progress.currentModIndex} / {progress.totalMods} mods
+              </p>
+              {progress.currentModId && (
+                <p style={{ margin: 0, fontSize: "12px", color: "var(--text-secondary, #666)" }}>
+                  Current: {progress.currentModId}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

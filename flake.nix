@@ -195,7 +195,9 @@
               echo ""
               echo "=== Running E2E tests ==="
               cd mod-loader
+              export PLAYWRIGHT_BROWSERS_PATH=${pkgs.playwright.browsers}
               npm install
+              npx playwright install --with-deps || true
               npm run test:e2e || exit 1
               cd ..
               
@@ -222,7 +224,9 @@
               set -e
               echo "Running E2E tests..."
               cd mod-loader
+              export PLAYWRIGHT_BROWSERS_PATH=${pkgs.playwright.browsers}
               npm install
+              npx playwright install --with-deps || true
               npm run test:e2e
             '');
           };

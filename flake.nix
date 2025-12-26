@@ -38,7 +38,7 @@
         # Node.js version
         nodejs = pkgs.nodejs_20;
 
-        # Common build inputs for tests and builds
+        # Common build inputs for tests and builds (same as devShell)
         commonBuildInputs = with pkgs; [
           rustToolchain
           nodejs
@@ -47,6 +47,13 @@
           openssl.dev
           gcc
           glibc
+          webkitgtk
+          gtk3
+          libsoup
+          glib
+          glib-networking
+          librsvg
+          cargo-tauri
         ];
 
         # Build the mod loader application
@@ -239,9 +246,15 @@
                 set -e
                 echo "Running Rust unit tests..."
                 
-                # Set up OpenSSL environment variables for cargo
+                # Set up pkg-config environment variables for cargo
                 export OPENSSL_DIR="${pkgs.openssl.dev}"
-                export PKG_CONFIG_PATH="${pkgs.openssl.dev}/lib/pkgconfig:${pkgs.lib.makeSearchPath "lib/pkgconfig" [ pkgs.openssl ]}"
+                export PKG_CONFIG_PATH="${pkgs.lib.makeSearchPath "lib/pkgconfig" [
+                  pkgs.openssl
+                  pkgs.glib
+                  pkgs.gtk3
+                  pkgs.webkitgtk
+                  pkgs.libsoup
+                ]}"
                 
                 cd mod-loader/src-tauri
                 cargo test --workspace

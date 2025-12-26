@@ -67,6 +67,10 @@ export default function ModPackImporter() {
       const settings = await getSettings();
       const modsPath = settings.mods_path || await invoke<string>("get_vintage_story_path");
       
+      // Use a ref to track progress values for callbacks to avoid stale closures
+      const progressRef = useRef({ success: 0, failed: 0, skipped: 0 });
+      progressRef.current = { success: 0, failed: 0, skipped: 0 };
+      
       const result = await applyModPack(modPack, modsPath, {
         showToast,
         abortSignal: abortControllerRef.current.signal,
@@ -75,21 +79,27 @@ export default function ModPackImporter() {
             currentModIndex: currentIndex,
             totalMods: total,
             currentModId,
+            success: progressRef.current.success,
+            failed: progressRef.current.failed,
+            skipped: progressRef.current.skipped,
           });
         },
         onSuccess: (modId) => {
+          progressRef.current.success++;
           updateProgress({
-            success: progress.success + 1,
+            success: progressRef.current.success,
           });
         },
         onFailed: (modId, error) => {
+          progressRef.current.failed++;
           updateProgress({
-            failed: progress.failed + 1,
+            failed: progressRef.current.failed,
           });
         },
         onSkipped: (modId) => {
+          progressRef.current.skipped++;
           updateProgress({
-            skipped: progress.skipped + 1,
+            skipped: progressRef.current.skipped,
           });
         },
       });

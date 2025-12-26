@@ -25,8 +25,6 @@ fn main() {
             game_detector::get_vintage_story_path,
             config::get_settings,
             config::save_settings,
-            api_client::search_mods,
-            api_client::get_mod_details,
             api_client::download_mod,
             mod_pack::create_mod_pack,
             mod_pack::export_mod_pack,

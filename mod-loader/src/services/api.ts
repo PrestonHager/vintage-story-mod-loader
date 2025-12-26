@@ -1,13 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { ModSearchResult, ModDatabaseMod } from "../types/mod";
 
-export async function searchMods(query?: string, page?: number): Promise<ModSearchResult> {
-  return await invoke("search_mods", { query, page });
-}
-
-export async function getModDetails(modId: string): Promise<ModDatabaseMod> {
-  return await invoke("get_mod_details", { modId });
-}
+// Mod database API functions removed - API is not reliable
+// Download URLs are now constructed directly from mod pack data
+// Format: https://mods.vintagestory.at/download/<modid>_<version>.zip
 
 export async function downloadMod(modId: string, downloadUrl: string, modsPath: string): Promise<string> {
   return await invoke("download_mod", { modId, downloadUrl, modsPath });

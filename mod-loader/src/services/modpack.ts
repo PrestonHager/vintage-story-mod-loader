@@ -107,8 +107,33 @@ export async function applyModPack(
 ): Promise<ApplyModPackResult> {
   const { showToast, onProgress, onSuccess, onFailed, onSkipped, abortSignal } = options;
   // Download missing mods and enable all mods in pack
-  const { getModDetails, downloadMod } = await import("./api");
+  const { downloadMod } = await import("./api");
   const { invoke } = await import("@tauri-apps/api/core");
+  
+  // Helper function to construct download URL from mod info
+  function constructDownloadUrl(modId: string, version: string, url?: string): string | null {
+    // If URL is already a direct download URL, use it
+    if (url && url.includes('/download/') && (url.endsWith('.zip') || url.endsWith('.tar') || url.endsWith('.tar.gz'))) {
+      return url;
+    }
+    
+    // Try to construct URL from mod ID and version
+    // Format: https://mods.vintagestory.at/download/<number>/<name>_<version>.zip
+    // Since we don't know the number, we'll try constructing without it
+    // The mod database sometimes uses: https://mods.vintagestory.at/download/<name>_<version>.zip
+    
+    // Clean up mod ID and version for URL
+    // Keep only alphanumeric, dots, dashes, underscores
+    const cleanModId = modId.replace(/[^a-zA-Z0-9._-]/g, '').toLowerCase();
+    const cleanVersion = version === "unknown" ? "" : version.replace(/[^a-zA-Z0-9._-]/g, '');
+    
+    // Construct URL: if version exists, use format <name>_<version>.zip, otherwise just <name>.zip
+    if (cleanVersion) {
+      return `https://mods.vintagestory.at/download/${cleanModId}_${cleanVersion}.zip`;
+    } else {
+      return `https://mods.vintagestory.at/download/${cleanModId}.zip`;
+    }
+  }
 
   const result: ApplyModPackResult = {
     success: 0,
@@ -153,74 +178,19 @@ export async function applyModPack(
       const isInstalled = modList.some(m => m.id === modPackMod.id);
 
       if (!isInstalled) {
-        // Try to use URL from mod pack first, otherwise search the database
-        let downloadUrl: string | undefined = modPackMod.url;
+        // Construct download URL from mod pack data
+        let downloadUrl: string | null = null;
         
-        // If URL is a page URL or API endpoint (not a direct download), fetch the download URL from API
-        if (downloadUrl && (
-          downloadUrl.includes('/show/mod/') || 
-          downloadUrl.includes('/api/mods/') ||
-          (downloadUrl.includes('mods.vintagestory.at') && !downloadUrl.includes('/download/'))
-        )) {
-          console.log(`[applyModPack] URL appears to be a page/API URL, fetching download URL from API for ${modPackMod.id}...`);
-          
-          // Check for cancellation before API call
-          if (abortSignal?.aborted) {
-            console.log("[applyModPack] Application cancelled by user");
-            break;
-          }
-          
-          try {
-            const modDetails = await getModDetails(modPackMod.id);
-            
-            // Check for cancellation after API call
-            if (abortSignal?.aborted) {
-              console.log("[applyModPack] Application cancelled by user");
-              break;
-            }
-            
-            downloadUrl = modDetails.download_url || undefined;
-          } catch (error) {
-            // Don't break on error, but check cancellation
-            if (abortSignal?.aborted) {
-              console.log("[applyModPack] Application cancelled by user");
-              break;
-            }
-            console.warn(`[applyModPack] Failed to get mod details for ${modPackMod.id}:`, error);
-            downloadUrl = undefined;
-          }
-        }
+        // Try to construct URL from mod pack data
+        downloadUrl = constructDownloadUrl(modPackMod.id, modPackMod.version, modPackMod.url);
         
         if (!downloadUrl) {
-          console.log(`[applyModPack] No URL in mod pack for ${modPackMod.id}, searching database...`);
-          
-          // Check for cancellation before API call
-          if (abortSignal?.aborted) {
-            console.log("[applyModPack] Application cancelled by user");
-            break;
-          }
-          
-          try {
-            const modDetails = await getModDetails(modPackMod.id);
-            
-            // Check for cancellation after API call
-            if (abortSignal?.aborted) {
-              console.log("[applyModPack] Application cancelled by user");
-              break;
-            }
-            
-            downloadUrl = modDetails.download_url || undefined;
-          } catch (error) {
-            // Don't break on error, but check cancellation
-            if (abortSignal?.aborted) {
-              console.log("[applyModPack] Application cancelled by user");
-              break;
-            }
-            console.warn(`[applyModPack] Failed to get mod details for ${modPackMod.id}:`, error);
-          }
+          console.warn(`[applyModPack] Could not construct download URL for ${modPackMod.id}`);
+        } else {
+          console.log(`[applyModPack] Constructed download URL for ${modPackMod.id}: ${downloadUrl}`);
         }
 
-        if (downloadUrl) {
+        if (downloadUrl && downloadUrl.trim() !== '') {
           // Check for cancellation before download
           if (abortSignal?.aborted) {
             console.log("[applyModPack] Application cancelled by user");

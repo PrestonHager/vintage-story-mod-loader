@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
 import { searchMods } from '../../src/services/api';
-import * as apiModule from '../../src/services/api';
 import { applyModPack } from '../../src/services/modpack';
 import type { ModPack } from '../../src/types/mod';
 import type { ModSearchApiResult } from '../../src/services/api';

@@ -339,16 +339,36 @@
                 # Use a writable temp directory for the symlink
                 BROWSERS_DIR="${pkgs.playwright.browsers}"
                 TEMP_BROWSERS_DIR=$(mktemp -d)
+                if [ ! -d "$TEMP_BROWSERS_DIR" ]; then
+                  echo "Failed to create temporary browsers directory for Playwright" >&2
+                  exit 1
+                fi
                 trap 'rm -rf "$TEMP_BROWSERS_DIR"' EXIT
                 # Copy symlinks to temp directory (they point to the actual browsers)
                 for item in "$BROWSERS_DIR"/*; do
                   if [ -L "$item" ]; then
-                    ln -sf "$(readlink -f "$item")" "$TEMP_BROWSERS_DIR/$(basename "$item")" || true
+                    target="$(readlink -f "$item")"
+                    if [ -e "$target" ]; then
+                      if ! ln -sf "$target" "$TEMP_BROWSERS_DIR/$(basename "$item")"; then
+                        echo "Warning: failed to create symlink for $item -> $target" >&2
+                      fi
+                    else
+                      echo "Warning: resolved target for $item does not exist: $target" >&2
+                    fi
                   fi
                 done
                 # Create symlink for version compatibility
-                if [ -L "$TEMP_BROWSERS_DIR/chromium_headless_shell-1194" ] && [ ! -e "$TEMP_BROWSERS_DIR/chromium_headless_shell-1200" ]; then
-                  ln -sf "$(readlink -f "$TEMP_BROWSERS_DIR/chromium_headless_shell-1194")" "$TEMP_BROWSERS_DIR/chromium_headless_shell-1200" || true
+                src_link="$TEMP_BROWSERS_DIR/chromium_headless_shell-1194"
+                dst_link="$TEMP_BROWSERS_DIR/chromium_headless_shell-1200"
+                if [ -L "$src_link" ] && [ ! -e "$dst_link" ]; then
+                  src_target="$(readlink -f "$src_link")"
+                  if [ -e "$src_target" ]; then
+                    if ! ln -sf "$src_target" "$dst_link"; then
+                      echo "Warning: failed to create compatibility symlink $dst_link from $src_target" >&2
+                    fi
+                  else
+                    echo "Warning: resolved target for $src_link does not exist: $src_target" >&2
+                  fi
                 fi
                 export PLAYWRIGHT_BROWSERS_PATH="$TEMP_BROWSERS_DIR"
                 # Skip playwright install on NixOS - browsers are provided by Nix

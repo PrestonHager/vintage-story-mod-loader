@@ -183,7 +183,7 @@
           # Run all tests
           test = {
             type = "app";
-            program = toString (pkgs.writeShellScriptBin "test-all" ''
+            program = "${pkgs.writeShellScriptBin "test-all" ''
               set -e
               echo "Running all tests..."
               echo ""
@@ -204,24 +204,24 @@
               
               echo ""
               echo "All tests passed!"
-            '');
+            ''}/bin/test-all";
           };
 
           # Run Rust unit tests only
           "test:rust" = {
             type = "app";
-            program = toString (pkgs.writeShellScriptBin "test-rust" ''
+            program = "${pkgs.writeShellScriptBin "test-rust" ''
               set -e
               echo "Running Rust unit tests..."
               cd mod-loader/src-tauri
               cargo test --workspace
-            '');
+            ''}/bin/test-rust";
           };
 
           # Run E2E tests only
           "test:e2e" = {
             type = "app";
-            program = toString (pkgs.writeShellScriptBin "test-e2e" ''
+            program = "${pkgs.writeShellScriptBin "test-e2e" ''
               set -e
               echo "Running E2E tests..."
               cd mod-loader
@@ -229,13 +229,13 @@
               npm install
               npx playwright install --with-deps || true
               npm run test:e2e
-            '');
+            ''}/bin/test-e2e";
           };
 
           # Run integration tests (if they exist)
           "test:integration" = {
             type = "app";
-            program = toString (pkgs.writeShellScriptBin "test-integration" ''
+            program = "${pkgs.writeShellScriptBin "test-integration" ''
               set -e
               echo "Running integration tests..."
               if [ -d "mod-loader/tests/integration" ] && [ "$(ls -A mod-loader/tests/integration)" ]; then
@@ -248,13 +248,13 @@
                 echo "No integration tests found"
                 exit 0
               fi
-            '');
+            ''}/bin/test-integration";
           };
 
           # Run TypeScript unit tests (if they exist)
           "test:unit" = {
             type = "app";
-            program = toString (pkgs.writeShellScriptBin "test-unit" ''
+            program = "${pkgs.writeShellScriptBin "test-unit" ''
               set -e
               echo "Running TypeScript unit tests..."
               if [ -d "mod-loader/tests/unit" ] && [ "$(ls -A mod-loader/tests/unit)" ]; then
@@ -267,7 +267,7 @@
                 echo "No TypeScript unit tests found"
                 exit 0
               fi
-            '');
+            ''}/bin/test-unit";
           };
         };
       }

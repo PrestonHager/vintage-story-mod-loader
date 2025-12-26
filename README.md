@@ -50,9 +50,11 @@ nix develop
 cd mod-loader
 npm install
 
-# Run in development mode
-npm run dev
+# Run in development mode (starts both Vite dev server and Tauri app)
+npm run tauri dev
 ```
+
+**Note:** `npm run dev` only starts the Vite dev server. Use `npm run tauri dev` to run the full Tauri application.
 
 #### Option 2: Manual Installation
 

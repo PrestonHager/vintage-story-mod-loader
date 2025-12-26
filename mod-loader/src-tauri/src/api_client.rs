@@ -14,7 +14,12 @@ pub async fn get_mod_download_url(mod_id: String, mod_url: Option<String>) -> Re
     // Try to construct the mod page URL
     let page_url = if let Some(url) = mod_url {
         // If it's an API URL, convert to page URL
-        if url.contains("/api/mods/") {
+        // Handle both /api/mod/ (correct) and /api/mods/ (old format) for backwards compatibility
+        if url.contains("/api/mod/") {
+            let mod_id_from_url = url.split("/api/mod/").last().unwrap_or(&mod_id);
+            format!("https://mods.vintagestory.at/show/mod/{}", mod_id_from_url)
+        } else if url.contains("/api/mods/") {
+            // Old format - still support it
             let mod_id_from_url = url.split("/api/mods/").last().unwrap_or(&mod_id);
             format!("https://mods.vintagestory.at/show/mod/{}", mod_id_from_url)
         } else if url.contains("/show/mod/") {

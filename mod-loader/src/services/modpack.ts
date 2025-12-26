@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import type { ModPack } from "../types/mod";
-import * as api from "./api";
+import { downloadMod as apiDownloadMod, getModDownloadUrl as apiGetModDownloadUrl } from "./api";
 
 export async function exportModPack(pack: ModPack): Promise<void> {
   const filePath = await save({
@@ -123,7 +123,7 @@ export async function applyModPack(
     // Try to fetch the download URL from the mod page
     try {
       console.log(`[getDownloadUrl] Fetching download URL for ${modId} from mod page...`);
-      const downloadUrl = await api.getModDownloadUrl(modId, url);
+      const downloadUrl = await apiGetModDownloadUrl(modId, url);
       console.log(`[getDownloadUrl] Got download URL for ${modId}: ${downloadUrl}`);
       return downloadUrl;
     } catch (error) {
@@ -210,7 +210,7 @@ export async function applyModPack(
           
           console.log(`[applyModPack] Downloading ${modPackMod.id} from ${downloadUrl}`);
           try {
-            await api.downloadMod(modPackMod.id, downloadUrl, modsPath);
+            await apiDownloadMod(modPackMod.id, downloadUrl, modsPath);
             
             // Check for cancellation after download
             if (abortSignal?.aborted) {

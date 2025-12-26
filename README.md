@@ -65,11 +65,13 @@ cd vintage-story-mod-loader
 cd mod-loader
 npm install
 
-# Run in development mode
-npm run dev
+# Run in development mode (starts both Vite dev server and Tauri app)
+npm run tauri dev
 ```
 
 **Note:** All npm commands must be run from the `mod-loader/` directory, not the project root.
+
+**Note:** `npm run dev` only starts the Vite dev server. Use `npm run tauri dev` to run the full Tauri application.
 
 ### Building
 
@@ -89,6 +91,55 @@ cargo test
 cd mod-loader
 npm run test:e2e
 ```
+
+## Quick Start Guide
+
+### Running in Development Mode
+
+1. **Enter the development environment:**
+   ```bash
+   # If using Nix
+   nix develop
+   
+   # Navigate to mod-loader directory
+   cd mod-loader
+   ```
+
+2. **Install dependencies (if not already done):**
+   ```bash
+   npm install
+   ```
+
+3. **Start the development server:**
+   ```bash
+   npm run tauri dev
+   ```
+   
+   This will:
+   - Start the Vite dev server on `http://localhost:1420`
+   - Build and launch the Tauri application window
+   - Enable hot module replacement for fast development
+
+### Importing the Example Mod Pack
+
+1. **Start the application** using `npm run tauri dev` (see above)
+
+2. **Navigate to Import Pack:**
+   - Click on "Import Pack" in the navigation bar
+   - Or navigate directly to the Import Pack page
+
+3. **Select the example mod pack:**
+   - Click the "Import Mod Pack JSON" button
+   - In the file dialog, navigate to the `examples/` folder in the project root
+   - Select `example-mod-pack.json`
+   - Click "Open"
+
+4. **Review and apply:**
+   - The mod pack details will be displayed
+   - Review the mods included in the pack
+   - Click "Apply Mod Pack" to download missing mods and enable all mods in the pack
+
+**Note:** The example mod pack contains 50+ mods. Applying it will attempt to download any mods that aren't already installed. Make sure you have an internet connection and that the mod database is accessible.
 
 ## Documentation
 

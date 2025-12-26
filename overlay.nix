@@ -26,15 +26,11 @@ final: prev: let
   # Get the source directory
   # When used as an overlay from a flake, this will be the flake source
   # When used standalone, this assumes the overlay.nix is in the repo root
-  modLoaderSrc = let
-    # Try to get source from parent directory (when overlay.nix is in repo root)
-    repoRoot = ../.;
-  in
-    if builtins.pathExists (repoRoot + "/mod-loader") then
-      prev.lib.cleanSource repoRoot
-    else
-      # Fallback: assume we're in the repo root already
-      prev.lib.cleanSource ./.;
+  # The source should be passed when importing, or defaults to parent directory
+  modLoaderSrc = if prev ? lib && prev.lib ? cleanSource then
+    prev.lib.cleanSource (if builtins.pathExists ../mod-loader then ../. else ./. )
+  else
+    (if builtins.pathExists ../mod-loader then ../. else ./.);
 
 in {
   # WebKitGTK and libsoup aliases for Tauri 2.0 compatibility

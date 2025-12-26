@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
 import ModList from "./components/ModList";
 import ModBrowser from "./components/ModBrowser";
 import ModPackCreator from "./components/ModPackCreator";
@@ -14,12 +14,12 @@ function App() {
         <nav className="navbar">
           <h1>Vintage Story Mod Loader</h1>
           <div className="nav-links">
-            <a href="#/mods">Mods</a>
-            <a href="#/browser">Browse</a>
-            <a href="#/packs">Mod Packs</a>
-            <a href="#/packs/import">Import Pack</a>
-            <a href="#/config">Config</a>
-            <a href="#/settings">Settings</a>
+            <Link to="/mods">Mods</Link>
+            <Link to="/browser">Browse</Link>
+            <Link to="/packs">Mod Packs</Link>
+            <Link to="/packs/import">Import Pack</Link>
+            <Link to="/config">Config</Link>
+            <Link to="/settings">Settings</Link>
           </div>
         </nav>
         <main className="main-content">

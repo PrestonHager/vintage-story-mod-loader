@@ -29,7 +29,7 @@ export default function ModPackEditor() {
       setSubmitting(true);
       const settings = await getSettings();
       const response = await invoke<any>("submit_mod_pack", {
-        modPack,
+        mod_pack: modPack,
         username: settings.api_username,
         password: settings.api_password,
       });

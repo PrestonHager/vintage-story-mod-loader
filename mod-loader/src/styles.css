@@ -39,7 +39,8 @@ body {
   gap: 1.5rem;
 }
 
-.nav-links a {
+.nav-links a,
+.nav-links a:visited {
   color: white;
   text-decoration: none;
   padding: 0.5rem 1rem;

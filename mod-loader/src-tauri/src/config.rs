@@ -3,12 +3,18 @@ use std::path::PathBuf;
 use dirs;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
 pub struct Settings {
+    #[serde(rename = "vintage_story_path")]
     pub vintage_story_path: Option<String>,
+    #[serde(rename = "mods_path")]
     pub mods_path: Option<String>,
+    #[serde(rename = "api_username")]
     pub api_username: Option<String>,
+    #[serde(rename = "api_password")]
     pub api_password: Option<String>,
     pub theme: String,
+    #[serde(rename = "default_mod_pack_location")]
     pub default_mod_pack_location: Option<String>,
 }
 

@@ -15,7 +15,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "lint": "eslint . --ext .ts,.tsx || true",
-    "test:e2e": "playwright test || true"
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0",

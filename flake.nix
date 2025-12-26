@@ -279,16 +279,27 @@
                 npm install
                 # Create symlink for browser version compatibility on NixOS
                 # Playwright may expect a different version than what's in the Nix store
+                # Use a writable temp directory for the symlink
                 BROWSERS_DIR="${pkgs.playwright.browsers}"
-                if [ -d "$BROWSERS_DIR/chromium_headless_shell-1194" ] && [ ! -e "$BROWSERS_DIR/chromium_headless_shell-1200" ]; then
-                  ln -sf "$BROWSERS_DIR/chromium_headless_shell-1194" "$BROWSERS_DIR/chromium_headless_shell-1200" || true
+                TEMP_BROWSERS_DIR=$(mktemp -d)
+                # Copy the browsers directory structure to a writable location
+                cp -r "$BROWSERS_DIR"/* "$TEMP_BROWSERS_DIR/" 2>/dev/null || true
+                # Create symlink for version compatibility
+                if [ -d "$TEMP_BROWSERS_DIR/chromium_headless_shell-1194" ] && [ ! -e "$TEMP_BROWSERS_DIR/chromium_headless_shell-1200" ]; then
+                  ln -sf "$TEMP_BROWSERS_DIR/chromium_headless_shell-1194" "$TEMP_BROWSERS_DIR/chromium_headless_shell-1200" || true
                 fi
+                export PLAYWRIGHT_BROWSERS_PATH="$TEMP_BROWSERS_DIR"
                 # Skip playwright install on NixOS - browsers are provided by Nix
-                npm run test:e2e || exit 1
+                # Run tests and handle report server gracefully
+                npm run test:e2e || TEST_EXIT_CODE=$?
+                # Cleanup temp directory
+                rm -rf "$TEMP_BROWSERS_DIR" || true
                 cd ..
-                
-                echo ""
-                echo "All tests passed!"
+                if [ -z "${TEST_EXIT_CODE:-}" ]; then
+                  echo ""
+                  echo "All tests passed!"
+                fi
+                exit ${TEST_EXIT_CODE:-0}
               '';
             }}/bin/test-all";
           };
@@ -357,17 +368,29 @@
                 set -e
                 echo "Running E2E tests..."
                 cd mod-loader
-                export PLAYWRIGHT_BROWSERS_PATH=${pkgs.playwright.browsers}
                 export PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true
                 npm install
                 # Create symlink for browser version compatibility on NixOS
                 # Playwright may expect a different version than what's in the Nix store
+                # Use a writable temp directory for the symlink
                 BROWSERS_DIR="${pkgs.playwright.browsers}"
-                if [ -d "$BROWSERS_DIR/chromium_headless_shell-1194" ] && [ ! -e "$BROWSERS_DIR/chromium_headless_shell-1200" ]; then
-                  ln -sf "$BROWSERS_DIR/chromium_headless_shell-1194" "$BROWSERS_DIR/chromium_headless_shell-1200" || true
+                TEMP_BROWSERS_DIR=$(mktemp -d)
+                trap "rm -rf \"$TEMP_BROWSERS_DIR\"" EXIT
+                # Copy symlinks to temp directory (they point to the actual browsers)
+                for item in "$BROWSERS_DIR"/*; do
+                  if [ -L "$item" ]; then
+                    ln -sf "$(readlink -f "$item")" "$TEMP_BROWSERS_DIR/$(basename "$item")" || true
+                  fi
+                done
+                # Create symlink for version compatibility
+                if [ -L "$TEMP_BROWSERS_DIR/chromium_headless_shell-1194" ] && [ ! -e "$TEMP_BROWSERS_DIR/chromium_headless_shell-1200" ]; then
+                  ln -sf "$(readlink -f "$TEMP_BROWSERS_DIR/chromium_headless_shell-1194")" "$TEMP_BROWSERS_DIR/chromium_headless_shell-1200" || true
                 fi
+                export PLAYWRIGHT_BROWSERS_PATH="$TEMP_BROWSERS_DIR"
                 # Skip playwright install on NixOS - browsers are provided by Nix
-                npm run test:e2e
+                # Run tests - use timeout to prevent hanging on report server
+                timeout 120 npm run test:e2e || TEST_EXIT_CODE=$?
+                exit ${TEST_EXIT_CODE:-0}
               '';
             }}/bin/test-e2e";
           };

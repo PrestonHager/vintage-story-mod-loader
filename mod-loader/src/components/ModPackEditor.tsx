@@ -56,6 +56,11 @@ export default function ModPackEditor() {
     try {
       setSubmitting(true);
       const settings = await getSettings();
+      
+      // First, save the mod pack to the packs directory
+      const packPath = await invoke<string>("save_mod_pack_to_packs_dir", { pack: modPack });
+      
+      // Then submit to the mod database
       const response = await invoke<any>("submit_mod_pack", {
         modPack: modPack,
         username: settings.api_username,
@@ -65,14 +70,15 @@ export default function ModPackEditor() {
       if (response.success) {
         // Clear stored mod pack on successful submission
         localStorage.removeItem(MOD_PACK_EDITOR_STORAGE_KEY);
-        alert(response.message || "Mod pack submitted successfully!");
-        navigate("/packs");
+        alert(response.message || "Mod pack saved and submitted successfully!");
+        navigate("/mod-packs");
       } else {
-        alert(`Submission failed: ${response.message || "Unknown error"}`);
+        alert(`Submission failed: ${response.message || "Unknown error"}. Mod pack was saved locally at: ${packPath}`);
       }
     } catch (error) {
       console.error("Failed to submit mod pack:", error);
-      alert(`Failed to submit mod pack: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert(`Failed to submit mod pack: ${errorMessage}`);
     } finally {
       setSubmitting(false);
     }

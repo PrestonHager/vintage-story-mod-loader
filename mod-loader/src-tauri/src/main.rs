@@ -6,6 +6,7 @@ mod config;
 mod game_detector;
 mod mod_manager;
 mod mod_pack;
+mod mod_pack_manager;
 mod mod_status;
 mod mod_submission;
 
@@ -38,6 +39,10 @@ fn main() {
             mod_status::check_all_mods_status,
             mod_status::install_dependencies,
             mod_status::update_mod,
+            mod_pack_manager::list_mod_packs,
+            mod_pack_manager::enable_mod_pack,
+            mod_pack_manager::disable_mod_pack,
+            mod_pack_manager::save_mod_pack_to_packs_dir,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

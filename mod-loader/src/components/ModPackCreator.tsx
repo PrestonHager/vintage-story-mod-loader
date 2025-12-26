@@ -142,7 +142,36 @@ export default function ModPackCreator() {
       alert("Mod pack exported successfully!");
     } catch (error) {
       console.error("Failed to export mod pack:", error);
-      alert(`Failed to export mod pack: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert(`Failed to export mod pack: ${errorMessage}`);
+    }
+  }
+
+  async function handleSaveAndPublish() {
+    if (!modPack.name || selectedMods.size === 0) {
+      alert("Please provide a name and select at least one mod");
+      return;
+    }
+
+    try {
+      const fullPack: ModPack = {
+        name: modPack.name!,
+        version: modPack.version || "1.0.0",
+        description: modPack.description || "",
+        mods: modPack.mods || [],
+        metadata: modPack.metadata || {},
+      };
+      
+      // Save to packs directory
+      const packPath = await invoke<string>("save_mod_pack_to_packs_dir", { pack: fullPack });
+      
+      // Navigate to editor for publishing
+      localStorage.removeItem(MOD_PACK_CREATOR_STORAGE_KEY);
+      navigate("/packs/edit", { state: { modPack: fullPack } });
+    } catch (error) {
+      console.error("Failed to save mod pack:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert(`Failed to save mod pack: ${errorMessage}`);
     }
   }
 
@@ -212,6 +241,12 @@ export default function ModPackCreator() {
             disabled={!modPack.name || selectedMods.size === 0}
           >
             Export Mod Pack
+          </button>
+          <button
+            onClick={handleSaveAndPublish}
+            disabled={!modPack.name || selectedMods.size === 0}
+          >
+            Save & Publish
           </button>
           <button
             onClick={handleNext}

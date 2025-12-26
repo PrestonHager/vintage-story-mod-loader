@@ -10,7 +10,7 @@ export default function ModPackImporter() {
   const [modPack, setModPack] = useState<ModPack | null>(null);
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
-  const { progress, startApplication, updateProgress, cancelApplication, reset } = useModPackApplication();
+  const { progress, startApplication, updateProgress } = useModPackApplication();
   const abortControllerRef = useRef<AbortController | null>(null);
   const progressRef = useRef({ success: 0, failed: 0, skipped: 0 });
 
@@ -95,19 +95,19 @@ export default function ModPackImporter() {
             skipped: progressRef.current.skipped,
           });
         },
-        onSuccess: (modId) => {
+        onSuccess: (_modId) => {
           progressRef.current.success++;
           updateProgress({
             success: progressRef.current.success,
           });
         },
-        onFailed: (modId, error) => {
+        onFailed: (_modId, _error) => {
           progressRef.current.failed++;
           updateProgress({
             failed: progressRef.current.failed,
           });
         },
-        onSkipped: (modId) => {
+        onSkipped: (_modId) => {
           progressRef.current.skipped++;
           updateProgress({
             skipped: progressRef.current.skipped,

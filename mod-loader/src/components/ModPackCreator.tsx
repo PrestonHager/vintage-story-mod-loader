@@ -163,7 +163,7 @@ export default function ModPackCreator() {
       };
       
       // Save to packs directory
-      const packPath = await invoke<string>("save_mod_pack_to_packs_dir", { pack: fullPack });
+      await invoke<string>("save_mod_pack_to_packs_dir", { pack: fullPack });
       
       // Navigate to editor for publishing
       localStorage.removeItem(MOD_PACK_CREATOR_STORAGE_KEY);

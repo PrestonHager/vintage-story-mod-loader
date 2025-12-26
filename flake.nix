@@ -285,6 +285,17 @@
                 fi
                 
                 echo ""
+                echo "=== Running integration tests ==="
+                cd mod-loader
+                TEST_INTEGRATION_EXIT_CODE=0
+                npm run test:integration || TEST_INTEGRATION_EXIT_CODE=$?
+                cd ..
+                if [ "$TEST_INTEGRATION_EXIT_CODE" -ne 0 ]; then
+                  echo "Integration tests failed!"
+                  exit $TEST_INTEGRATION_EXIT_CODE
+                fi
+                
+                echo ""
                 echo "=== Running E2E tests ==="
                 cd mod-loader
                 export PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true

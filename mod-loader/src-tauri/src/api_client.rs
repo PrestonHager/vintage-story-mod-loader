@@ -1,10 +1,12 @@
 // API client for downloading mods directly
 // Uses the VS Mod DB API: https://raw.githubusercontent.com/anegostudios/vsmoddb/refs/heads/master/README.md
 // Endpoint: /api/mod/<modid> where modid can be numeric ID or modid string from modinfo.json
+// Endpoint: /api/mods for searching mods with parameters: text, tagids[], gameversion, author, orderby, orderdirection
 // Response format: JSON with statuscode property and mod.releases[0].mainfile containing the download URL
 // API docs: http://mods.vintagestory.at/api
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Deserialize)]
 struct ModApiResponse {

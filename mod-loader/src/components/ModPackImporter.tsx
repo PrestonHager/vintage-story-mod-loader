@@ -12,6 +12,7 @@ export default function ModPackImporter() {
   const { showToast } = useToast();
   const { progress, startApplication, updateProgress, cancelApplication, reset } = useModPackApplication();
   const abortControllerRef = useRef<AbortController | null>(null);
+  const progressRef = useRef({ success: 0, failed: 0, skipped: 0 });
 
   async function handleImport() {
     try {
@@ -67,8 +68,7 @@ export default function ModPackImporter() {
       const settings = await getSettings();
       const modsPath = settings.mods_path || await invoke<string>("get_vintage_story_path");
       
-      // Use a ref to track progress values for callbacks to avoid stale closures
-      const progressRef = useRef({ success: 0, failed: 0, skipped: 0 });
+      // Reset progress ref for this application
       progressRef.current = { success: 0, failed: 0, skipped: 0 };
       
       const result = await applyModPack(modPack, modsPath, {

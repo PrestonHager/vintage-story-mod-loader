@@ -177,11 +177,13 @@ export async function applyModPack(
             continue; // Skip enabling if download failed
           }
         } else {
-          console.warn(`[applyModPack] No download URL available for ${modPackMod.id}, skipping download`);
-          showToast?.(`No download URL available for ${modPackMod.id}`, "warning", 5000);
-          onSkipped?.(modPackMod.id);
-          result.skipped++;
-          // Still try to enable if it might already be installed
+          // No download URL available and mod is not installed - this is a failure
+          console.warn(`[applyModPack] No download URL available for ${modPackMod.id}, cannot download`);
+          const errorMsg = `No download URL available for ${modPackMod.id}`;
+          showToast?.(errorMsg, "error", 6000);
+          onFailed?.(modPackMod.id, errorMsg);
+          result.failed++;
+          continue; // Skip enabling since we couldn't download
         }
       } else {
         console.log(`[applyModPack] Mod ${modPackMod.id} is already installed`);
@@ -189,7 +191,7 @@ export async function applyModPack(
         result.skipped++;
       }
 
-      // Enable mod
+      // Enable mod (only if it was downloaded or already installed)
       try {
         await invoke("enable_mods", { modsPath, modIds: [modPackMod.id] });
         onSuccess?.(modPackMod.id);

@@ -221,7 +221,9 @@
           # Run all tests
           test = {
             type = "app";
-            description = "Run all test suites (Rust unit, TypeScript unit, integration, and E2E tests). By default continues on failure; set PAUSE_TEST_ON_ERROR=1 to stop on first failure.";
+            meta = {
+              description = "Run all test suites (Rust unit, TypeScript unit, integration, and E2E tests). By default continues on failure; set PAUSE_TEST_ON_ERROR=1 to stop on first failure.";
+            };
             program = "${pkgs.writeShellApplication {
               name = "test-all";
               runtimeInputs = commonBuildInputs ++ (with pkgs; [
@@ -385,7 +387,9 @@
           # Run Rust unit tests only
           "test:rust" = {
             type = "app";
-            description = "Run Rust unit tests only using cargo test";
+            meta = {
+              description = "Run Rust unit tests only using cargo test";
+            };
             program = "${pkgs.writeShellApplication {
               name = "test-rust";
               runtimeInputs = commonBuildInputs;
@@ -436,7 +440,9 @@
           # Run E2E tests only
           "test:e2e" = {
             type = "app";
-            description = "Run end-to-end tests using Playwright. Configured for NixOS compatibility.";
+            meta = {
+              description = "Run end-to-end tests using Playwright. Configured for NixOS compatibility.";
+            };
             program = "${pkgs.writeShellApplication {
               name = "test-e2e";
               runtimeInputs = with pkgs; [
@@ -480,7 +486,9 @@
           # Run integration tests
           "test:integration" = {
             type = "app";
-            description = "Run TypeScript integration tests that test service interactions and workflows";
+            meta = {
+              description = "Run TypeScript integration tests that test service interactions and workflows";
+            };
             program = "${pkgs.writeShellApplication {
               name = "test-integration";
               runtimeInputs = with pkgs; [
@@ -501,7 +509,9 @@
           # Run TypeScript unit tests
           "test:unit" = {
             type = "app";
-            description = "Run TypeScript unit tests using Vitest";
+            meta = {
+              description = "Run TypeScript unit tests using Vitest";
+            };
             program = "${pkgs.writeShellApplication {
               name = "test-unit";
               runtimeInputs = with pkgs; [

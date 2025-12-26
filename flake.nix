@@ -45,6 +45,8 @@
           pkg-config
           openssl
           openssl.dev
+          zlib
+          zlib.dev
           gcc
           glibc
           webkitgtk

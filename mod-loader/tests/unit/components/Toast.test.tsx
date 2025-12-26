@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '../test-utils';
+import { render, screen, waitFor, fireEvent } from '../test-utils';
 import { ToastProvider, useToast } from '../../../src/components/Toast';
 import { act } from '@testing-library/react';
 
@@ -168,6 +168,9 @@ describe('Toast', () => {
 
   describe('Toast Queue Management', () => {
     it('should remove toast when closed', async () => {
+      // Use real timers for this test to avoid timing issues
+      vi.useRealTimers();
+      
       render(
         <ToastProvider>
           <TestComponent />
@@ -182,14 +185,19 @@ describe('Toast', () => {
         expect(screen.getByText('Success message')).toBeInTheDocument();
       });
 
-      const closeButton = screen.getByText('×');
-      act(() => {
-        closeButton.click();
-      });
+      // Find all close buttons (×) and click the first one
+      const closeButtons = screen.getAllByText('×');
+      expect(closeButtons.length).toBeGreaterThan(0);
+      
+      fireEvent.click(closeButtons[0]);
 
+      // Wait for the toast to be removed
       await waitFor(() => {
         expect(screen.queryByText('Success message')).not.toBeInTheDocument();
-      });
+      }, { timeout: 1000 });
+      
+      // Restore fake timers
+      vi.useFakeTimers();
     });
 
     it('should handle multiple toasts with different durations', async () => {
@@ -209,14 +217,21 @@ describe('Toast', () => {
         expect(screen.getByText('Success message')).toBeInTheDocument();
       });
 
+      // Advance timers to trigger auto-dismissal
       act(() => {
         vi.advanceTimersByTime(1000);
+      });
+
+      // Wait for React to process the state update
+      await act(async () => {
+        // Flush promises
+        await Promise.resolve();
       });
 
       await waitFor(() => {
         expect(screen.queryByText('Custom duration')).not.toBeInTheDocument();
         expect(screen.getByText('Success message')).toBeInTheDocument();
-      });
+      }, { timeout: 2000 });
     });
   });
 });

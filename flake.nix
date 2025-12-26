@@ -233,7 +233,24 @@
                 echo ""
                 
                 # Set up pkg-config environment variables for cargo
-                export OPENSSL_DIR="${pkgs.openssl.dev}"
+                export OPENSSL_DIR="${pkgs.openssl.out}"
+                export OPENSSL_LIB_DIR="${pkgs.openssl.out}/lib"
+                export OPENSSL_INCLUDE_DIR="${pkgs.openssl.dev}/include"
+                export LIBRARY_PATH="${pkgs.lib.makeLibraryPath [
+                  pkgs.zlib
+                  pkgs.openssl
+                  pkgs.glib
+                  pkgs.gtk3
+                  pkgs.webkitgtk
+                  pkgs.libsoup
+                  pkgs.gdk-pixbuf
+                  pkgs.atk
+                  pkgs.cairo
+                  pkgs.pango
+                  pkgs.librsvg
+                  pkgs.harfbuzz
+                  pkgs.fontconfig
+                ]}"
                 export PKG_CONFIG_PATH="${pkgs.lib.makeSearchPath "lib/pkgconfig" [
                   pkgs.openssl.dev
                   pkgs.glib.dev
@@ -283,6 +300,21 @@
                 export OPENSSL_DIR="${pkgs.openssl.out}"
                 export OPENSSL_LIB_DIR="${pkgs.openssl.out}/lib"
                 export OPENSSL_INCLUDE_DIR="${pkgs.openssl.dev}/include"
+                export LIBRARY_PATH="${pkgs.lib.makeLibraryPath [
+                  pkgs.zlib
+                  pkgs.openssl
+                  pkgs.glib
+                  pkgs.gtk3
+                  pkgs.webkitgtk
+                  pkgs.libsoup
+                  pkgs.gdk-pixbuf
+                  pkgs.atk
+                  pkgs.cairo
+                  pkgs.pango
+                  pkgs.librsvg
+                  pkgs.harfbuzz
+                  pkgs.fontconfig
+                ]}"
                 export PKG_CONFIG_PATH="${pkgs.lib.makeSearchPath "lib/pkgconfig" [
                   pkgs.openssl.dev
                   pkgs.glib.dev

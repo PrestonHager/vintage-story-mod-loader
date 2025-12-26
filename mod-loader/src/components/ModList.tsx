@@ -85,6 +85,9 @@ export default function ModList() {
     <div>
       <div className="card">
         <h2>Installed Mods</h2>
+        <div style={{ marginTop: "0.5rem", marginBottom: "1rem", fontSize: "0.875rem", color: "#666" }}>
+          <strong>Mods Path:</strong> {modsPath || "Not set"}
+        </div>
         <div style={{ display: "flex", gap: "1rem", marginTop: "1rem", marginBottom: "1rem" }}>
           <input
             type="text"
@@ -93,6 +96,7 @@ export default function ModList() {
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ flex: 1 }}
           />
+          <button onClick={loadMods}>Refresh</button>
           <button onClick={toggleSelectAll}>
             {selectedMods.size === filteredMods.length ? "Deselect All" : "Select All"}
           </button>
@@ -113,7 +117,17 @@ export default function ModList() {
 
       <div>
         {filteredMods.length === 0 ? (
-          <div className="card">No mods found.</div>
+          <div className="card">
+            <p>No mods found.</p>
+            {modsPath && (
+              <p style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "#666" }}>
+                Checked path: {modsPath}
+              </p>
+            )}
+            <p style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "#666" }}>
+              Make sure your Vintage Story mods are installed in the Mods directory.
+            </p>
+          </div>
         ) : (
           filteredMods.map((mod) => (
             <div key={mod.id} className="card">

@@ -45,15 +45,31 @@ pub async fn get_mod_list(mods_path: String) -> Result<Vec<Mod>, String> {
     let mods_dir = Path::new(&mods_path);
     let mut mods = Vec::new();
 
+    eprintln!("Looking for mods in: {}", mods_path);
+    
     if !mods_dir.exists() {
+        eprintln!("Mods directory does not exist: {}", mods_path);
         return Ok(mods);
     }
 
-    let entries = std::fs::read_dir(mods_dir).map_err(|e| e.to_string())?;
+    let disabled_dir = mods_dir.join("disabled");
+    let entries = std::fs::read_dir(mods_dir).map_err(|e| format!("Failed to read mods directory: {}", e))?;
 
     for entry in entries {
-        let entry = entry.map_err(|e| e.to_string())?;
+        let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
         let path = entry.path();
+
+        // Skip the disabled directory itself
+        if path == disabled_dir {
+            continue;
+        }
+
+        // Check if this is a disabled mod (in the disabled folder)
+        let is_in_disabled = path.parent()
+            .and_then(|p| p.file_name())
+            .and_then(|n| n.to_str())
+            .map(|n| n == "disabled")
+            .unwrap_or(false);
 
         if path.is_dir() {
             let modid = path.file_name()
@@ -62,14 +78,17 @@ pub async fn get_mod_list(mods_path: String) -> Result<Vec<Mod>, String> {
                 .to_string();
 
             // Check if mod is disabled (has .disabled extension or is in disabled folder)
-            let enabled = !modid.ends_with(".disabled") && !path.ends_with("disabled");
+            let enabled = !modid.ends_with(".disabled") && !is_in_disabled;
 
             let modinfo_path = path.join("modinfo.json");
             let info = if modinfo_path.exists() {
                 read_modinfo_internal(&modinfo_path).ok()
             } else {
+                eprintln!("Warning: Mod {} does not have modinfo.json", modid);
                 None
             };
+
+            eprintln!("Found mod: {} (enabled: {})", modid, enabled);
 
             mods.push(Mod {
                 id: modid.clone(),
@@ -83,9 +102,58 @@ pub async fn get_mod_list(mods_path: String) -> Result<Vec<Mod>, String> {
                 enabled,
                 info,
             });
+        } else if path.extension().and_then(|s| s.to_str()) == Some("zip") {
+            // Handle .zip mod files (Vintage Story can load mods from .zip files)
+            let modid = path.file_stem()
+                .and_then(|n| n.to_str())
+                .unwrap_or("unknown")
+                .to_string();
+
+            eprintln!("Found zip mod: {} (skipping - zip mods not yet supported)", modid);
+            // TODO: Extract and read modinfo from zip files
         }
     }
 
+    // Also check disabled directory
+    if disabled_dir.exists() {
+        if let Ok(disabled_entries) = std::fs::read_dir(&disabled_dir) {
+            for entry in disabled_entries {
+                if let Ok(entry) = entry {
+                    let path = entry.path();
+                    if path.is_dir() {
+                        let modid = path.file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or("unknown")
+                            .to_string();
+
+                        let modinfo_path = path.join("modinfo.json");
+                        let info = if modinfo_path.exists() {
+                            read_modinfo_internal(&modinfo_path).ok()
+                        } else {
+                            None
+                        };
+
+                        eprintln!("Found disabled mod: {}", modid);
+
+                        mods.push(Mod {
+                            id: modid.clone(),
+                            name: info.as_ref()
+                                .and_then(|i| Some(i.name.clone()))
+                                .unwrap_or_else(|| modid.clone()),
+                            version: info.as_ref()
+                                .and_then(|i| Some(i.version.clone()))
+                                .unwrap_or_else(|| "unknown".to_string()),
+                            path: path.to_string_lossy().to_string(),
+                            enabled: false,
+                            info,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    eprintln!("Total mods found: {}", mods.len());
     Ok(mods)
 }
 

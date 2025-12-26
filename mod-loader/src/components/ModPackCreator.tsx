@@ -26,7 +26,7 @@ export default function ModPackCreator() {
       const settings = await getSettings();
       const path = settings.mods_path || await invoke<string>("get_vintage_story_path");
       const modList = await invoke<Mod[]>("get_mod_list", { modsPath: path });
-      setMods(modList.filter(m => m.enabled));
+      setMods(modList); // Load all mods, not just enabled ones
     } catch (error) {
       console.error("Failed to load mods:", error);
     }
@@ -41,6 +41,24 @@ export default function ModPackCreator() {
     }
     setSelectedMods(newSelected);
     updateModPackMods(newSelected);
+  }
+
+  function selectAll() {
+    const allModIds = new Set(mods.map(m => m.id));
+    setSelectedMods(allModIds);
+    updateModPackMods(allModIds);
+  }
+
+  function deselectAll() {
+    const emptySet = new Set<string>();
+    setSelectedMods(emptySet);
+    updateModPackMods(emptySet);
+  }
+
+  function selectAllEnabled() {
+    const enabledModIds = new Set(mods.filter(m => m.enabled).map(m => m.id));
+    setSelectedMods(enabledModIds);
+    updateModPackMods(enabledModIds);
   }
 
   function updateModPackMods(selected: Set<string>) {
@@ -115,7 +133,12 @@ export default function ModPackCreator() {
 
       <div className="card">
         <h3>Select Mods ({selectedMods.size} selected)</h3>
-        <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+        <div style={{ marginTop: "1rem", marginBottom: "1rem", display: "flex", gap: "0.5rem" }}>
+          <button onClick={selectAll}>Select All</button>
+          <button onClick={deselectAll}>Deselect All</button>
+          <button onClick={selectAllEnabled}>Select All Enabled</button>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           {mods.map((mod) => (
             <div key={mod.id} style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
               <input
@@ -125,6 +148,7 @@ export default function ModPackCreator() {
               />
               <div style={{ flex: 1 }}>
                 <strong>{mod.name}</strong> <span style={{ color: "#666" }}>({mod.version})</span>
+                {mod.enabled && <span style={{ color: "#28a745", marginLeft: "0.5rem" }}>✓ Enabled</span>}
               </div>
             </div>
           ))}

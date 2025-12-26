@@ -47,7 +47,7 @@ function App() {
               <div className="nav-links">
                 <Link to="/mods">Mods</Link>
                 <Link to="/browser">Browse</Link>
-                <Link to="/packs">Mod Packs</Link>
+                <Link to="/packs">Create Pack</Link>
                 <Link to="/packs/import">Import Pack</Link>
                 <Link to="/config">Config</Link>
                 <Link to="/settings">Settings</Link>

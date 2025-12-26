@@ -176,6 +176,95 @@
 
           docs-build = docs;
         };
+
+        # Test applications
+        apps = {
+          # Run all tests
+          test = {
+            type = "app";
+            program = toString (pkgs.writeShellScriptBin "test-all" ''
+              set -e
+              echo "Running all tests..."
+              echo ""
+              
+              echo "=== Running Rust unit tests ==="
+              cd mod-loader/src-tauri
+              cargo test --workspace || exit 1
+              cd ../..
+              
+              echo ""
+              echo "=== Running E2E tests ==="
+              cd mod-loader
+              npm install
+              npm run test:e2e || exit 1
+              cd ..
+              
+              echo ""
+              echo "All tests passed!"
+            '');
+          };
+
+          # Run Rust unit tests only
+          "test:rust" = {
+            type = "app";
+            program = toString (pkgs.writeShellScriptBin "test-rust" ''
+              set -e
+              echo "Running Rust unit tests..."
+              cd mod-loader/src-tauri
+              cargo test --workspace
+            '');
+          };
+
+          # Run E2E tests only
+          "test:e2e" = {
+            type = "app";
+            program = toString (pkgs.writeShellScriptBin "test-e2e" ''
+              set -e
+              echo "Running E2E tests..."
+              cd mod-loader
+              npm install
+              npm run test:e2e
+            '');
+          };
+
+          # Run integration tests (if they exist)
+          "test:integration" = {
+            type = "app";
+            program = toString (pkgs.writeShellScriptBin "test-integration" ''
+              set -e
+              echo "Running integration tests..."
+              if [ -d "mod-loader/tests/integration" ] && [ "$(ls -A mod-loader/tests/integration)" ]; then
+                cd mod-loader
+                npm install
+                # Add integration test command here when implemented
+                echo "Integration tests not yet implemented"
+                exit 0
+              else
+                echo "No integration tests found"
+                exit 0
+              fi
+            '');
+          };
+
+          # Run TypeScript unit tests (if they exist)
+          "test:unit" = {
+            type = "app";
+            program = toString (pkgs.writeShellScriptBin "test-unit" ''
+              set -e
+              echo "Running TypeScript unit tests..."
+              if [ -d "mod-loader/tests/unit" ] && [ "$(ls -A mod-loader/tests/unit)" ]; then
+                cd mod-loader
+                npm install
+                # Add unit test command here when implemented
+                echo "TypeScript unit tests not yet implemented"
+                exit 0
+              else
+                echo "No TypeScript unit tests found"
+                exit 0
+              fi
+            '');
+          };
+        };
       }
     );
 }

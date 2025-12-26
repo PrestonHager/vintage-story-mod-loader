@@ -94,6 +94,11 @@
 
       in
       {
+        # Export the overlay for use by other flakes
+        overlays.default = final: prev: {
+          vintage-story-mod-loader = modLoader;
+        };
+
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
             rustToolchain

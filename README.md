@@ -26,6 +26,152 @@ Download the `.dmg` file from the [Releases](https://github.com/PrestonHager/vin
 
 Download the `.AppImage` or `.deb` package from the [Releases](https://github.com/PrestonHager/vintage-story-mod-loader/releases) page.
 
+### NixOS / Nix
+
+#### Option 1: Using the Overlay (Recommended)
+
+Add the overlay to your Nix configuration:
+
+**For NixOS (`/etc/nixos/configuration.nix` or `~/.config/nixpkgs/config.nix`):**
+
+```nix
+{
+  nixpkgs.overlays = [
+    (import (builtins.fetchTarball {
+      url = "https://github.com/PrestonHager/vintage-story-mod-loader/archive/main.tar.gz";
+      sha256 = "0000000000000000000000000000000000000000000000000000"; # Update with actual hash
+    }) + "/overlay.nix")
+  ];
+}
+```
+
+Or if you have the repository cloned locally:
+
+```nix
+{
+  nixpkgs.overlays = [
+    (import /path/to/vintage-story-mod-loader/overlay.nix)
+  ];
+}
+```
+
+**For Home Manager (`~/.config/home-manager/home.nix`):**
+
+```nix
+{
+  nixpkgs.overlays = [
+    (import (builtins.fetchTarball {
+      url = "https://github.com/PrestonHager/vintage-story-mod-loader/archive/main.tar.gz";
+      sha256 = "0000000000000000000000000000000000000000000000000000"; # Update with actual hash
+    }) + "/overlay.nix")
+  ];
+
+  home.packages = with pkgs; [
+    vintage-story-mod-loader
+  ];
+}
+```
+
+**For NixOS system packages (`/etc/nixos/configuration.nix`):**
+
+```nix
+{
+  nixpkgs.overlays = [
+    (import (builtins.fetchTarball {
+      url = "https://github.com/PrestonHager/vintage-story-mod-loader/archive/main.tar.gz";
+      sha256 = "0000000000000000000000000000000000000000000000000000"; # Update with actual hash
+    }) + "/overlay.nix")
+  ];
+
+  environment.systemPackages = with pkgs; [
+    vintage-story-mod-loader
+  ];
+}
+```
+
+After adding the overlay, rebuild your system:
+
+```bash
+# For NixOS
+sudo nixos-rebuild switch
+
+# For Home Manager
+home-manager switch
+```
+
+#### Option 2: Using the Flake
+
+If you're using flakes, you can add this repository as an input:
+
+**For NixOS Flakes (`flake.nix`):**
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    vintage-story-mod-loader.url = "github:PrestonHager/vintage-story-mod-loader";
+  };
+
+  outputs = { self, nixpkgs, vintage-story-mod-loader, ... }@inputs: {
+    nixosConfigurations.your-hostname = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        {
+          nixpkgs.overlays = [
+            vintage-story-mod-loader.overlays.default
+          ];
+          environment.systemPackages = with pkgs; [
+            vintage-story-mod-loader.packages.${system}.default
+          ];
+        }
+      ];
+    };
+  };
+}
+```
+
+**For Home Manager Flakes:**
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    home-manager.url = "github:nix-community/home-manager";
+    vintage-story-mod-loader.url = "github:PrestonHager/vintage-story-mod-loader";
+  };
+
+  outputs = { self, nixpkgs, home-manager, vintage-story-mod-loader, ... }@inputs: {
+    homeConfigurations.your-username = home-manager.lib.homeManagerConfiguration {
+      pkgs = import nixpkgs {
+        system = "x86_64-linux";
+        overlays = [
+          vintage-story-mod-loader.overlays.default
+        ];
+      };
+      modules = [
+        {
+          home.packages = with pkgs; [
+            vintage-story-mod-loader.packages.${system}.default
+          ];
+        }
+      ];
+    };
+  };
+}
+```
+
+#### Option 3: Using nix-env
+
+```bash
+nix-env -iA vintage-story-mod-loader -f https://github.com/PrestonHager/vintage-story-mod-loader/archive/main.tar.gz
+```
+
+**Note:** When using `fetchTarball`, you'll need to update the `sha256` hash. You can get the correct hash by running:
+
+```bash
+nix-prefetch-url --unpack https://github.com/PrestonHager/vintage-story-mod-loader/archive/main.tar.gz
+```
+
 ## Development
 
 ### Prerequisites

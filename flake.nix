@@ -212,9 +212,15 @@
                 echo "Running all tests..."
                 echo ""
                 
-                # Set up OpenSSL environment variables for cargo
+                # Set up pkg-config environment variables for cargo
                 export OPENSSL_DIR="${pkgs.openssl.dev}"
-                export PKG_CONFIG_PATH="${pkgs.openssl.dev}/lib/pkgconfig:${pkgs.lib.makeSearchPath "lib/pkgconfig" [ pkgs.openssl ]}"
+                export PKG_CONFIG_PATH="${pkgs.lib.makeSearchPath "lib/pkgconfig" [
+                  pkgs.openssl
+                  pkgs.glib
+                  pkgs.gtk3
+                  pkgs.webkitgtk
+                  pkgs.libsoup
+                ]}"
                 
                 echo "=== Running Rust unit tests ==="
                 cd mod-loader/src-tauri

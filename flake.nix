@@ -416,7 +416,7 @@
             }}/bin/test-e2e";
           };
 
-          # Run integration tests (if they exist)
+          # Run integration tests
           "test:integration" = {
             type = "app";
             program = "${pkgs.writeShellApplication {
@@ -425,18 +425,13 @@
                 nodejs
               ];
               text = ''
-                set -e
+                set +e  # Don't exit on error, we'll handle it manually
                 echo "Running integration tests..."
-                if [ -d "mod-loader/tests/integration" ] && [ "$(ls -A mod-loader/tests/integration)" ]; then
-                  cd mod-loader
-                  npm install
-                  # Add integration test command here when implemented
-                  echo "Integration tests not yet implemented"
-                  exit 0
-                else
-                  echo "No integration tests found"
-                  exit 0
-                fi
+                cd mod-loader
+                npm install
+                TEST_EXIT_CODE=0
+                npm run test:integration || TEST_EXIT_CODE=$?
+                exit $TEST_EXIT_CODE
               '';
             }}/bin/test-integration";
           };

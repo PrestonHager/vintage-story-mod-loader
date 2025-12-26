@@ -130,7 +130,7 @@ pub async fn import_mod_pack(file_path: String) -> Result<ModPack, String> {
             
             eprintln!("[import_mod_pack] Attempting to parse JSON...");
             match serde_json::from_str::<ModPack>(&content) {
-                Ok(mut pack) => {
+                Ok(pack) => {
                     eprintln!("[import_mod_pack] JSON parsed successfully");
                     eprintln!("[import_mod_pack] Mod pack name: {}", pack.name);
                     eprintln!("[import_mod_pack] Mod pack version: {}", pack.version);

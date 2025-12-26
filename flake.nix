@@ -226,6 +226,7 @@
               runtimeInputs = commonBuildInputs ++ (with pkgs; [
                 playwright
                 playwright.browsers
+                coreutils # for timeout and mktemp
               ]);
               text = ''
                 set -e
@@ -291,15 +292,17 @@
                 export PLAYWRIGHT_BROWSERS_PATH="$TEMP_BROWSERS_DIR"
                 # Skip playwright install on NixOS - browsers are provided by Nix
                 # Run tests and handle report server gracefully
+                set +e  # Don't exit on error, we'll handle it manually
+                TEST_EXIT_CODE=0
                 npm run test:e2e || TEST_EXIT_CODE=$?
                 # Cleanup temp directory
                 rm -rf "$TEMP_BROWSERS_DIR" || true
                 cd ..
-                if [ -z "${TEST_EXIT_CODE:-}" ]; then
+                if [ "$TEST_EXIT_CODE" -eq 0 ]; then
                   echo ""
                   echo "All tests passed!"
                 fi
-                exit ${TEST_EXIT_CODE:-0}
+                exit $TEST_EXIT_CODE
               '';
             }}/bin/test-all";
           };
@@ -363,9 +366,10 @@
                 nodejs
                 playwright
                 playwright.browsers
+                coreutils # for timeout and mktemp
               ];
               text = ''
-                set -e
+                set +e  # Don't exit on error, we'll handle it manually
                 echo "Running E2E tests..."
                 cd mod-loader
                 export PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true
@@ -389,8 +393,9 @@
                 export PLAYWRIGHT_BROWSERS_PATH="$TEMP_BROWSERS_DIR"
                 # Skip playwright install on NixOS - browsers are provided by Nix
                 # Run tests - use timeout to prevent hanging on report server
+                TEST_EXIT_CODE=0
                 timeout 120 npm run test:e2e || TEST_EXIT_CODE=$?
-                exit ${TEST_EXIT_CODE:-0}
+                exit $TEST_EXIT_CODE
               '';
             }}/bin/test-e2e";
           };

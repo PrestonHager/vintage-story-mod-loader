@@ -114,7 +114,7 @@ export async function applyModPack(
   const { invoke } = await import("@tauri-apps/api/core");
   
   // Helper function to get download URL from mod page
-  async function getDownloadUrl(modId: string, version: string, url?: string): Promise<string | null> {
+  async function getDownloadUrl(modId: string, _version: string, url?: string): Promise<string | null> {
     // If URL is already a direct download URL, use it
     if (url && url.includes('/download/') && (url.endsWith('.zip') || url.endsWith('.tar') || url.endsWith('.tar.gz'))) {
       return url;

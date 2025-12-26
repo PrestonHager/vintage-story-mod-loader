@@ -1,6 +1,13 @@
 use serde::{Deserialize, Serialize};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::Read;
+use sha2::{Sha256, Digest};
+use hex;
+use zip::ZipArchive;
 use tauri::command;
+use dirs;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ModInfo {
@@ -24,6 +31,31 @@ pub struct Mod {
     pub path: String,
     pub enabled: bool,
     pub info: Option<ModInfo>,
+    #[serde(default)]
+    pub is_zip: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ModIndexEntry {
+    pub hash: String,
+    pub modid: String,
+    pub name: String,
+    pub version: String,
+    pub description: Option<String>,
+    pub authors: Vec<String>,
+    pub website: Option<String>,
+    pub side: Option<String>,
+    pub download_url: Option<String>,
+    pub thumbnail_url: Option<String>,
+    pub category: Option<String>,
+    pub tags: Vec<String>,
+    pub file_name: String,
+    pub file_path: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ModIndex {
+    mods: HashMap<String, ModIndexEntry>, // hash -> entry
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -101,20 +133,93 @@ pub async fn get_mod_list(mods_path: String) -> Result<Vec<Mod>, String> {
                 path: path.to_string_lossy().to_string(),
                 enabled,
                 info,
+                is_zip: false,
             });
         } else if path.extension().and_then(|s| s.to_str()) == Some("zip") {
             // Handle .zip mod files (Vintage Story can load mods from .zip files)
-            let modid = path.file_stem()
+            let mut index = load_mod_index();
+            let hash = match hash_file(&path) {
+                Ok(h) => h,
+                Err(e) => {
+                    eprintln!("Failed to hash zip mod {}: {}", path.display(), e);
+                    continue;
+                }
+            };
+
+            // Check if we already have this mod indexed
+            let entry = if let Some(existing) = index.mods.get(&hash) {
+                // Verify the file still exists and path matches
+                if Path::new(&existing.file_path).exists() && existing.file_path == path.to_string_lossy().to_string() {
+                    existing.clone()
+                } else {
+                    // Re-index the mod
+                    match index_zip_mod(&path) {
+                        Ok(new_entry) => {
+                            index.mods.insert(hash.clone(), new_entry.clone());
+                            new_entry
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to index zip mod {}: {}", path.display(), e);
+                            continue;
+                        }
+                    }
+                }
+            } else {
+                // New mod, index it
+                match index_zip_mod(&path) {
+                    Ok(new_entry) => {
+                        let hash_clone = hash.clone();
+                        let entry_clone = new_entry.clone();
+                        index.mods.insert(hash_clone, entry_clone.clone());
+                        new_entry
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to index zip mod {}: {}", path.display(), e);
+                        continue;
+                    }
+                }
+            };
+
+            // Check if mod is disabled (has .disabled extension)
+            let file_name = path.file_name()
                 .and_then(|n| n.to_str())
                 .unwrap_or("unknown")
                 .to_string();
+            let enabled = !file_name.ends_with(".disabled");
 
-            eprintln!("Found zip mod: {} (skipping - zip mods not yet supported)", modid);
-            // TODO: Extract and read modinfo from zip files
+            let modinfo = ModInfo {
+                modid: entry.modid.clone(),
+                name: entry.name.clone(),
+                version: entry.version.clone(),
+                description: entry.description.clone(),
+                authors: entry.authors.clone(),
+                website: entry.website.clone(),
+                side: entry.side.clone(),
+                requiredonclient: None,
+                requiredonserver: None,
+                dependencies: None,
+            };
+
+            eprintln!("Found zip mod: {} (enabled: {})", entry.modid, enabled);
+
+            mods.push(Mod {
+                id: entry.modid.clone(),
+                name: entry.name.clone(),
+                version: entry.version.clone(),
+                path: path.to_string_lossy().to_string(),
+                enabled,
+                info: Some(modinfo),
+                is_zip: true,
+            });
+
+            // Save updated index
+            if let Err(e) = save_mod_index(&index) {
+                eprintln!("Warning: Failed to save mod index: {}", e);
+            }
         }
     }
 
-    // Also check disabled directory
+    // Also check disabled directory for both directories and zip files
     if disabled_dir.exists() {
         if let Ok(disabled_entries) = std::fs::read_dir(&disabled_dir) {
             for entry in disabled_entries {
@@ -146,7 +251,82 @@ pub async fn get_mod_list(mods_path: String) -> Result<Vec<Mod>, String> {
                             path: path.to_string_lossy().to_string(),
                             enabled: false,
                             info,
+                            is_zip: false,
                         });
+                    } else if path.extension().and_then(|s| s.to_str()) == Some("zip") || 
+                              path.extension().and_then(|s| s.to_str()) == Some("disabled") {
+                        // Handle disabled zip mods
+                        let mut index = load_mod_index();
+                        let hash = match hash_file(&path) {
+                            Ok(h) => h,
+                            Err(_) => continue,
+                        };
+
+                        if let Some(entry) = index.mods.get(&hash) {
+                            let modinfo = ModInfo {
+                                modid: entry.modid.clone(),
+                                name: entry.name.clone(),
+                                version: entry.version.clone(),
+                                description: entry.description.clone(),
+                                authors: entry.authors.clone(),
+                                website: entry.website.clone(),
+                                side: entry.side.clone(),
+                                requiredonclient: None,
+                                requiredonserver: None,
+                                dependencies: None,
+                            };
+
+                            eprintln!("Found disabled zip mod: {}", entry.modid);
+
+                            mods.push(Mod {
+                                id: entry.modid.clone(),
+                                name: entry.name.clone(),
+                                version: entry.version.clone(),
+                                path: path.to_string_lossy().to_string(),
+                                enabled: false,
+                                info: Some(modinfo),
+                                is_zip: true,
+                            });
+                        } else {
+                            // Try to index it
+                            match index_zip_mod(&path) {
+                                Ok(new_entry) => {
+                                    let hash_clone = hash.clone();
+                                    let entry_clone = new_entry.clone();
+                                    index.mods.insert(hash_clone, entry_clone.clone());
+                                    
+                                    let modinfo = ModInfo {
+                                        modid: new_entry.modid.clone(),
+                                        name: new_entry.name.clone(),
+                                        version: new_entry.version.clone(),
+                                        description: new_entry.description.clone(),
+                                        authors: new_entry.authors.clone(),
+                                        website: new_entry.website.clone(),
+                                        side: new_entry.side.clone(),
+                                        requiredonclient: None,
+                                        requiredonserver: None,
+                                        dependencies: None,
+                                    };
+
+                                    mods.push(Mod {
+                                        id: new_entry.modid.clone(),
+                                        name: new_entry.name.clone(),
+                                        version: new_entry.version.clone(),
+                                        path: path.to_string_lossy().to_string(),
+                                        enabled: false,
+                                        info: Some(modinfo),
+                                        is_zip: true,
+                                    });
+
+                                    if let Err(e) = save_mod_index(&index) {
+                                        eprintln!("Warning: Failed to save mod index: {}", e);
+                                    }
+                                }
+                                Err(e) => {
+                                    eprintln!("Failed to index disabled zip mod {}: {}", path.display(), e);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -161,26 +341,102 @@ pub async fn get_mod_list(mods_path: String) -> Result<Vec<Mod>, String> {
 pub async fn enable_mods(mods_path: String, mod_ids: Vec<String>) -> Result<(), String> {
     let mods_dir = Path::new(&mods_path);
     let disabled_dir = mods_dir.join("disabled");
+    let mut index = load_mod_index();
 
     for mod_id in mod_ids {
-        let mod_path = if mod_id.ends_with(".disabled") {
-            mods_dir.join(&mod_id)
+        // First, try to find the mod in the index (for zip mods)
+        let mut found_in_index = false;
+        let mut hash_to_update: Option<String> = None;
+        let mut target_path: Option<PathBuf> = None;
+        let mut target_name: Option<String> = None;
+        
+        for (hash, entry) in index.mods.iter() {
+            if entry.modid == mod_id {
+                let current_path = Path::new(&entry.file_path);
+                if current_path.exists() && current_path.parent() == Some(disabled_dir.as_path()) {
+                    // This is a disabled zip mod, enable it
+                    let file_name = current_path.file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("")
+                        .to_string();
+                    
+                    // Determine target filename (remove .disabled extension if present)
+                    let tgt_name = if file_name.ends_with(".disabled") {
+                        file_name.trim_end_matches(".disabled").to_string()
+                    } else if !file_name.ends_with(".zip") {
+                        format!("{}.zip", file_name)
+                    } else {
+                        file_name
+                    };
+                    
+                    let tgt_path = mods_dir.join(&tgt_name);
+                    
+                    std::fs::rename(current_path, &tgt_path)
+                        .map_err(|e| format!("Failed to enable mod {}: {}", mod_id, e))?;
+                    
+                    hash_to_update = Some(hash.clone());
+                    target_path = Some(tgt_path);
+                    target_name = Some(tgt_name);
+                    found_in_index = true;
+                    break;
+                }
+            }
+        }
+        
+        // Update index after iteration
+        if let (Some(hash), Some(tgt_path), Some(tgt_name)) = (hash_to_update, target_path, target_name) {
+            if let Some(entry) = index.mods.get_mut(&hash) {
+                entry.file_path = tgt_path.to_string_lossy().to_string();
+                entry.file_name = tgt_name;
+            }
+        }
+        
+        if found_in_index {
+            continue;
+        }
+        
+        // Try to find the mod in disabled directory (could be directory or zip)
+        let mod_path = disabled_dir.join(&mod_id);
+        let mod_path_zip = disabled_dir.join(format!("{}.zip", mod_id));
+        let mod_path_disabled = disabled_dir.join(format!("{}.disabled", mod_id));
+
+        let (source_path, target_path) = if mod_path.exists() && mod_path.is_dir() {
+            // Directory mod
+            (mod_path.clone(), mods_dir.join(&mod_id))
+        } else if mod_path_zip.exists() {
+            // Zip mod with .zip extension
+            (mod_path_zip.clone(), mods_dir.join(format!("{}.zip", mod_id)))
+        } else if mod_path_disabled.exists() {
+            // Zip mod with .disabled extension
+            let target = mods_dir.join(format!("{}.zip", mod_id));
+            (mod_path_disabled.clone(), target)
         } else {
-            disabled_dir.join(&mod_id)
+            // Mod not found or already enabled
+            continue;
         };
 
-        if mod_path.exists() {
-            let new_path = if mod_id.ends_with(".disabled") {
-                mods_dir.join(mod_id.trim_end_matches(".disabled"))
-            } else {
-                mods_dir.join(&mod_id)
-            };
-
-            std::fs::rename(&mod_path, &new_path)
+        if source_path.exists() {
+            std::fs::rename(&source_path, &target_path)
                 .map_err(|e| format!("Failed to enable mod {}: {}", mod_id, e))?;
+            
+            // Update index if it's a zip mod
+            if let Some(ext) = target_path.extension() {
+                if ext == "zip" {
+                    if let Ok(hash) = hash_file(&target_path) {
+                        if let Some(entry) = index.mods.get_mut(&hash) {
+                            entry.file_path = target_path.to_string_lossy().to_string();
+                            entry.file_name = target_path.file_name()
+                                .and_then(|n| n.to_str())
+                                .unwrap_or("")
+                                .to_string();
+                        }
+                    }
+                }
+            }
         }
     }
 
+    save_mod_index(&index).map_err(|e| format!("Failed to save mod index: {}", e))?;
     Ok(())
 }
 
@@ -188,6 +444,7 @@ pub async fn enable_mods(mods_path: String, mod_ids: Vec<String>) -> Result<(), 
 pub async fn disable_mods(mods_path: String, mod_ids: Vec<String>) -> Result<(), String> {
     let mods_dir = Path::new(&mods_path);
     let disabled_dir = mods_dir.join("disabled");
+    let mut index = load_mod_index();
 
     // Create disabled directory if it doesn't exist
     if !disabled_dir.exists() {
@@ -196,14 +453,81 @@ pub async fn disable_mods(mods_path: String, mod_ids: Vec<String>) -> Result<(),
     }
 
     for mod_id in mod_ids {
+        // First, try to find the mod in the index (for zip mods)
+        let mut found_in_index = false;
+        let mut hash_to_update: Option<String> = None;
+        let mut target_path: Option<PathBuf> = None;
+        
+        for (hash, entry) in index.mods.iter() {
+            if entry.modid == mod_id {
+                let current_path = Path::new(&entry.file_path);
+                if current_path.exists() && current_path.parent() == Some(mods_dir) {
+                    // This is an enabled zip mod, disable it
+                    let tgt_path = disabled_dir.join(format!("{}.disabled", mod_id));
+                    
+                    std::fs::rename(current_path, &tgt_path)
+                        .map_err(|e| format!("Failed to disable mod {}: {}", mod_id, e))?;
+                    
+                    hash_to_update = Some(hash.clone());
+                    target_path = Some(tgt_path);
+                    found_in_index = true;
+                    break;
+                }
+            }
+        }
+        
+        // Update index after iteration
+        if let (Some(hash), Some(tgt_path)) = (hash_to_update, target_path) {
+            if let Some(entry) = index.mods.get_mut(&hash) {
+                entry.file_path = tgt_path.to_string_lossy().to_string();
+                entry.file_name = tgt_path.file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("")
+                    .to_string();
+            }
+        }
+        
+        if found_in_index {
+            continue;
+        }
+        
+        // Try directory first, then zip file
         let mod_path = mods_dir.join(&mod_id);
-        if mod_path.exists() {
-            let new_path = disabled_dir.join(&mod_id);
-            std::fs::rename(&mod_path, &new_path)
+        let mod_path_zip = mods_dir.join(format!("{}.zip", mod_id));
+
+        let (source_path, target_path) = if mod_path.exists() && mod_path.is_dir() {
+            // Directory mod
+            (mod_path.clone(), disabled_dir.join(&mod_id))
+        } else if mod_path_zip.exists() {
+            // Zip mod - rename to .disabled extension
+            let target = disabled_dir.join(format!("{}.disabled", mod_id));
+            (mod_path_zip.clone(), target)
+        } else {
+            continue;
+        };
+
+        if source_path.exists() {
+            std::fs::rename(&source_path, &target_path)
                 .map_err(|e| format!("Failed to disable mod {}: {}", mod_id, e))?;
+            
+            // Update index if it's a zip mod
+            if let Some(ext) = source_path.extension() {
+                if ext == "zip" {
+                    if let Ok(hash) = hash_file(&target_path) {
+                        if let Some(entry) = index.mods.get_mut(&hash) {
+                            entry.file_path = target_path.to_string_lossy().to_string();
+                            entry.file_name = target_path.file_name()
+                                .and_then(|n| n.to_str())
+                                .unwrap_or("")
+                                .to_string();
+                        }
+                    }
+                }
+            }
         }
     }
 
+    save_mod_index(&index).map_err(|e| format!("Failed to save mod index: {}", e))?;
     Ok(())
 }
 
@@ -217,6 +541,124 @@ fn read_modinfo_internal(path: &Path) -> Result<ModInfo, ModManagerError> {
     let content = std::fs::read_to_string(path)?;
     let info: ModInfo = serde_json::from_str(&content)?;
     Ok(info)
+}
+
+fn get_index_path() -> Result<PathBuf, String> {
+    let config_dir = dirs::config_dir()
+        .ok_or("Failed to get config directory")?
+        .join("vs-mod-loader");
+    std::fs::create_dir_all(&config_dir)
+        .map_err(|e| format!("Failed to create config directory: {}", e))?;
+    Ok(config_dir.join("mod-index.json"))
+}
+
+fn load_mod_index() -> ModIndex {
+    let index_path = match get_index_path() {
+        Ok(p) => p,
+        Err(_) => return ModIndex { mods: HashMap::new() },
+    };
+
+    if !index_path.exists() {
+        return ModIndex { mods: HashMap::new() };
+    }
+
+    match std::fs::read_to_string(&index_path) {
+        Ok(content) => {
+            match serde_json::from_str::<ModIndex>(&content) {
+                Ok(index) => index,
+                Err(e) => {
+                    eprintln!("Failed to parse mod index: {}", e);
+                    ModIndex { mods: HashMap::new() }
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Failed to read mod index: {}", e);
+            ModIndex { mods: HashMap::new() }
+        }
+    }
+}
+
+fn save_mod_index(index: &ModIndex) -> Result<(), String> {
+    let index_path = get_index_path()?;
+    let content = serde_json::to_string_pretty(index)
+        .map_err(|e| format!("Failed to serialize mod index: {}", e))?;
+    std::fs::write(&index_path, content)
+        .map_err(|e| format!("Failed to write mod index: {}", e))?;
+    Ok(())
+}
+
+fn hash_file(path: &Path) -> Result<String, String> {
+    let mut file = File::open(path)
+        .map_err(|e| format!("Failed to open file for hashing: {}", e))?;
+    let mut hasher = Sha256::new();
+    let mut buffer = vec![0u8; 8192];
+    
+    loop {
+        let bytes_read = file.read(&mut buffer)
+            .map_err(|e| format!("Failed to read file for hashing: {}", e))?;
+        if bytes_read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..bytes_read]);
+    }
+    
+    Ok(hex::encode(hasher.finalize()))
+}
+
+fn extract_modinfo_from_zip(zip_path: &Path) -> Result<ModInfo, String> {
+    let file = File::open(zip_path)
+        .map_err(|e| format!("Failed to open zip file: {}", e))?;
+    let mut archive = ZipArchive::new(file)
+        .map_err(|e| format!("Failed to read zip archive: {}", e))?;
+
+    // Try common paths for modinfo.json
+    let modinfo_paths = vec![
+        "modinfo.json",
+        "mod/modinfo.json",
+        "assets/modinfo.json",
+    ];
+
+    for modinfo_path in modinfo_paths {
+        if let Ok(mut file) = archive.by_name(modinfo_path) {
+            let mut content = String::new();
+            file.read_to_string(&mut content)
+                .map_err(|e| format!("Failed to read modinfo.json from zip: {}", e))?;
+            
+            let info: ModInfo = serde_json::from_str(&content)
+                .map_err(|e| format!("Failed to parse modinfo.json: {}", e))?;
+            return Ok(info);
+        }
+    }
+
+    Err("modinfo.json not found in zip file".to_string())
+}
+
+fn index_zip_mod(zip_path: &Path) -> Result<ModIndexEntry, String> {
+    let hash = hash_file(zip_path)?;
+    let modinfo = extract_modinfo_from_zip(zip_path)?;
+    
+    let file_name = zip_path.file_name()
+        .and_then(|n| n.to_str())
+        .ok_or("Invalid file name")?
+        .to_string();
+    
+    Ok(ModIndexEntry {
+        hash: hash.clone(),
+        modid: modinfo.modid.clone(),
+        name: modinfo.name.clone(),
+        version: modinfo.version.clone(),
+        description: modinfo.description.clone(),
+        authors: modinfo.authors.clone(),
+        website: modinfo.website.clone(),
+        side: modinfo.side.clone(),
+        download_url: None,
+        thumbnail_url: None,
+        category: None,
+        tags: vec![],
+        file_name: file_name.clone(),
+        file_path: zip_path.to_string_lossy().to_string(),
+    })
 }
 
 #[command]

@@ -18,7 +18,13 @@ export async function exportModPack(pack: ModPack): Promise<void> {
 
 export async function importModPack(): Promise<ModPack | null> {
   try {
-    console.log("Opening file dialog...");
+    console.log("[modpack.ts] Opening file dialog...");
+    console.log("[modpack.ts] Dialog options:", {
+      filters: [{ name: "Mod Pack", extensions: ["json"] }],
+      multiple: false,
+      title: "Select Mod Pack JSON File"
+    });
+    
     const filePath = await open({
       filters: [{
         name: "Mod Pack",
@@ -28,31 +34,52 @@ export async function importModPack(): Promise<ModPack | null> {
       title: "Select Mod Pack JSON File"
     });
 
-    console.log("File dialog returned:", filePath);
+    console.log("[modpack.ts] File dialog returned:", filePath);
+    console.log("[modpack.ts] Type of filePath:", typeof filePath);
+    console.log("[modpack.ts] Is array?", Array.isArray(filePath));
 
     // Handle different return types from Tauri dialog
     let path: string | null = null;
     if (typeof filePath === "string") {
+      console.log("[modpack.ts] File path is a string:", filePath);
       path = filePath;
     } else if (Array.isArray(filePath) && filePath.length > 0) {
+      console.log("[modpack.ts] File path is an array, using first element:", filePath[0]);
       path = filePath[0];
     } else if (filePath === null || filePath === undefined) {
       // User cancelled
-      console.log("User cancelled file selection");
+      console.log("[modpack.ts] User cancelled file selection");
       return null;
+    } else {
+      console.warn("[modpack.ts] Unexpected filePath type:", typeof filePath, filePath);
     }
 
     if (!path) {
-      console.warn("No file path returned from dialog");
+      console.warn("[modpack.ts] No file path returned from dialog");
       return null;
     }
 
-    console.log("Importing mod pack from:", path);
+    console.log("[modpack.ts] Calling Tauri command import_mod_pack with path:", path);
+    console.log("[modpack.ts] Invoking backend...");
+    
     const pack = await invoke<ModPack>("import_mod_pack", { filePath: path });
-    console.log("Successfully imported mod pack:", pack.name);
+    
+    console.log("[modpack.ts] Backend returned mod pack:", {
+      name: pack.name,
+      version: pack.version,
+      modsCount: pack.mods.length,
+      hasDescription: !!pack.description
+    });
+    console.log("[modpack.ts] Successfully imported mod pack:", pack.name);
     return pack;
   } catch (error) {
-    console.error("Failed to import mod pack:", error);
+    console.error("[modpack.ts] Failed to import mod pack:", error);
+    console.error("[modpack.ts] Error type:", error?.constructor?.name);
+    console.error("[modpack.ts] Error details:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined
+    });
     const errorMessage = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to import mod pack: ${errorMessage}`);
   }

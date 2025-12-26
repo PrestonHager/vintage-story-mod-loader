@@ -18,6 +18,7 @@ export interface Mod {
   path: string;
   enabled: boolean;
   info?: ModInfo;
+  is_zip?: boolean;
 }
 
 export interface ModDatabaseMod {

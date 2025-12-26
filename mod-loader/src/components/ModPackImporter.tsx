@@ -12,21 +12,36 @@ export default function ModPackImporter() {
   async function handleImport() {
     try {
       setLoading(true);
-      console.log("Import button clicked");
+      console.log("[Frontend] Import button clicked");
+      console.log("[Frontend] Calling importModPack()...");
+      
       const pack = await importModPack();
+      
+      console.log("[Frontend] importModPack() returned:", pack);
+      
       if (pack) {
+        console.log("[Frontend] Mod pack received:", {
+          name: pack.name,
+          version: pack.version,
+          modsCount: pack.mods.length
+        });
         setModPack(pack);
         alert(`Successfully imported mod pack: ${pack.name}`);
       } else {
         // User cancelled - no need to show error
-        console.log("Import cancelled by user");
+        console.log("[Frontend] Import cancelled by user");
       }
     } catch (error) {
-      console.error("Failed to import mod pack:", error);
+      console.error("[Frontend] Failed to import mod pack:", error);
+      console.error("[Frontend] Error details:", {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
       const errorMessage = error instanceof Error ? error.message : String(error);
-      alert(`Failed to import mod pack: ${errorMessage}`);
+      alert(`Failed to import mod pack: ${errorMessage}\n\nCheck the console and terminal for detailed error messages.`);
     } finally {
       setLoading(false);
+      console.log("[Frontend] Import process finished, loading set to false");
     }
   }
 

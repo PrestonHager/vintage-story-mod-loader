@@ -103,7 +103,66 @@ pub async fn export_mod_pack(pack: ModPack, file_path: String) -> Result<(), Str
 
 #[tauri::command]
 pub async fn import_mod_pack(file_path: String) -> Result<ModPack, String> {
+    eprintln!("[import_mod_pack] Starting import process");
+    eprintln!("[import_mod_pack] Received file_path: {}", file_path);
+    
     let path = Path::new(&file_path);
-    ModPack::from_file(path).map_err(|e| e.to_string())
+    eprintln!("[import_mod_pack] Path object created: {:?}", path);
+    
+    if !path.exists() {
+        let err = format!("File does not exist: {}", file_path);
+        eprintln!("[import_mod_pack] ERROR: {}", err);
+        return Err(err);
+    }
+    
+    eprintln!("[import_mod_pack] File exists, checking if it's a file...");
+    if !path.is_file() {
+        let err = format!("Path is not a file: {}", file_path);
+        eprintln!("[import_mod_pack] ERROR: {}", err);
+        return Err(err);
+    }
+    
+    eprintln!("[import_mod_pack] Attempting to read file...");
+    match std::fs::read_to_string(path) {
+        Ok(content) => {
+            eprintln!("[import_mod_pack] File read successfully, size: {} bytes", content.len());
+            eprintln!("[import_mod_pack] First 200 chars of content: {}", &content.chars().take(200).collect::<String>());
+            
+            eprintln!("[import_mod_pack] Attempting to parse JSON...");
+            match serde_json::from_str::<ModPack>(&content) {
+                Ok(mut pack) => {
+                    eprintln!("[import_mod_pack] JSON parsed successfully");
+                    eprintln!("[import_mod_pack] Mod pack name: {}", pack.name);
+                    eprintln!("[import_mod_pack] Mod pack version: {}", pack.version);
+                    eprintln!("[import_mod_pack] Number of mods: {}", pack.mods.len());
+                    
+                    eprintln!("[import_mod_pack] Validating mod pack...");
+                    match pack.validate(false) {
+                        Ok(_) => {
+                            eprintln!("[import_mod_pack] Validation passed");
+                            eprintln!("[import_mod_pack] Import successful!");
+                            Ok(pack)
+                        }
+                        Err(e) => {
+                            let err = format!("Validation failed: {}", e);
+                            eprintln!("[import_mod_pack] ERROR: {}", err);
+                            Err(err)
+                        }
+                    }
+                }
+                Err(e) => {
+                    let err = format!("Failed to parse JSON: {}", e);
+                    eprintln!("[import_mod_pack] ERROR: {}", err);
+                    eprintln!("[import_mod_pack] JSON error details: {:?}", e);
+                    Err(err)
+                }
+            }
+        }
+        Err(e) => {
+            let err = format!("Failed to read file: {}", e);
+            eprintln!("[import_mod_pack] ERROR: {}", err);
+            Err(err)
+        }
+    }
 }
 

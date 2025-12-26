@@ -44,6 +44,7 @@ export interface ModPackMod {
   id: string;
   version: string;
   url?: string; // Optional URL to download the mod directly
+  hash?: string; // SHA256 hash of the mod file for verification
 }
 
 export interface ModPackLinks {

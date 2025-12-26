@@ -23,7 +23,7 @@ export default function ModList() {
       const path = settings.mods_path || await invoke<string>("get_vintage_story_path");
       setModsPath(path);
       
-      const modList = await invoke<Mod[]>("get_mod_list", { modsPath: path });
+      const modList = await invoke<Mod[]>("get_mod_list", { modsPath: path, forceRefresh: true });
       setMods(modList);
     } catch (error) {
       console.error("Failed to load mods:", error);

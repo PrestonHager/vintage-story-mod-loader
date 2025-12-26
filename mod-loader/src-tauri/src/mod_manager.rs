@@ -73,7 +73,8 @@ pub enum ModManagerError {
 }
 
 #[command]
-pub async fn get_mod_list(mods_path: String) -> Result<Vec<Mod>, String> {
+pub async fn get_mod_list(mods_path: String, force_refresh: Option<bool>) -> Result<Vec<Mod>, String> {
+    let force_refresh = force_refresh.unwrap_or(false);
     let mods_dir = Path::new(&mods_path);
     let mut mods = Vec::new();
 
@@ -149,10 +150,11 @@ pub async fn get_mod_list(mods_path: String) -> Result<Vec<Mod>, String> {
             // Check if we already have this mod indexed
             let entry = if let Some(existing) = index.mods.get(&hash) {
                 // Verify the file still exists and path matches
-                if Path::new(&existing.file_path).exists() && existing.file_path == path.to_string_lossy().to_string() {
+                if !force_refresh && Path::new(&existing.file_path).exists() && existing.file_path == path.to_string_lossy().to_string() {
+                    // Use cached entry - hash matches, file exists, path matches
                     existing.clone()
                 } else {
-                    // Re-index the mod
+                    // Re-index the mod (force refresh or file/path changed)
                     match index_zip_mod(&path) {
                         Ok(new_entry) => {
                             index.mods.insert(hash.clone(), new_entry.clone());
@@ -212,9 +214,11 @@ pub async fn get_mod_list(mods_path: String) -> Result<Vec<Mod>, String> {
                 is_zip: true,
             });
 
-            // Save updated index
-            if let Err(e) = save_mod_index(&index) {
-                eprintln!("Warning: Failed to save mod index: {}", e);
+            // Save updated index only if we modified it (new mod or reindexed)
+            if force_refresh || !index.mods.contains_key(&hash) {
+                if let Err(e) = save_mod_index(&index) {
+                    eprintln!("Warning: Failed to save mod index: {}", e);
+                }
             }
         }
     }
@@ -288,42 +292,44 @@ pub async fn get_mod_list(mods_path: String) -> Result<Vec<Mod>, String> {
                                 is_zip: true,
                             });
                         } else {
-                            // Try to index it
-                            match index_zip_mod(&path) {
-                                Ok(new_entry) => {
-                                    let hash_clone = hash.clone();
-                                    let entry_clone = new_entry.clone();
-                                    index.mods.insert(hash_clone, entry_clone.clone());
-                                    
-                                    let modinfo = ModInfo {
-                                        modid: new_entry.modid.clone(),
-                                        name: new_entry.name.clone(),
-                                        version: new_entry.version.clone(),
-                                        description: new_entry.description.clone(),
-                                        authors: new_entry.authors.clone(),
-                                        website: new_entry.website.clone(),
-                                        side: new_entry.side.clone(),
-                                        requiredonclient: None,
-                                        requiredonserver: None,
-                                        dependencies: None,
-                                    };
+                            // Try to index it (only if not forcing refresh, otherwise skip)
+                            if !force_refresh {
+                                match index_zip_mod(&path) {
+                                    Ok(new_entry) => {
+                                        let hash_clone = hash.clone();
+                                        let entry_clone = new_entry.clone();
+                                        index.mods.insert(hash_clone, entry_clone.clone());
+                                        
+                                        let modinfo = ModInfo {
+                                            modid: new_entry.modid.clone(),
+                                            name: new_entry.name.clone(),
+                                            version: new_entry.version.clone(),
+                                            description: new_entry.description.clone(),
+                                            authors: new_entry.authors.clone(),
+                                            website: new_entry.website.clone(),
+                                            side: new_entry.side.clone(),
+                                            requiredonclient: None,
+                                            requiredonserver: None,
+                                            dependencies: None,
+                                        };
 
-                                    mods.push(Mod {
-                                        id: new_entry.modid.clone(),
-                                        name: new_entry.name.clone(),
-                                        version: new_entry.version.clone(),
-                                        path: path.to_string_lossy().to_string(),
-                                        enabled: false,
-                                        info: Some(modinfo),
-                                        is_zip: true,
-                                    });
+                                        mods.push(Mod {
+                                            id: new_entry.modid.clone(),
+                                            name: new_entry.name.clone(),
+                                            version: new_entry.version.clone(),
+                                            path: path.to_string_lossy().to_string(),
+                                            enabled: false,
+                                            info: Some(modinfo),
+                                            is_zip: true,
+                                        });
 
-                                    if let Err(e) = save_mod_index(&index) {
-                                        eprintln!("Warning: Failed to save mod index: {}", e);
+                                        if let Err(e) = save_mod_index(&index) {
+                                            eprintln!("Warning: Failed to save mod index: {}", e);
+                                        }
                                     }
-                                }
-                                Err(e) => {
-                                    eprintln!("Failed to index disabled zip mod {}: {}", path.display(), e);
+                                    Err(e) => {
+                                        eprintln!("Failed to index disabled zip mod {}: {}", path.display(), e);
+                                    }
                                 }
                             }
                         }
@@ -702,6 +708,29 @@ pub async fn write_config(mod_path: String, file_name: String, content: String) 
     let config_path = Path::new(&mod_path).join(&file_name);
     std::fs::write(&config_path, content)
         .map_err(|e| format!("Failed to write config file: {}", e))
+}
+
+#[command]
+pub async fn reindex_mod(mods_path: String, mod_id: String) -> Result<(), String> {
+    let mods_dir = Path::new(&mods_path);
+    let mod_path = mods_dir.join(format!("{}.zip", mod_id));
+    
+    if !mod_path.exists() {
+        return Err(format!("Mod file not found: {}", mod_path.display()));
+    }
+    
+    let mut index = load_mod_index();
+    match index_zip_mod(&mod_path) {
+        Ok(new_entry) => {
+            let hash = hash_file(&mod_path)
+                .map_err(|e| format!("Failed to hash mod file: {}", e))?;
+            index.mods.insert(hash, new_entry);
+            save_mod_index(&index)
+                .map_err(|e| format!("Failed to save mod index: {}", e))?;
+            Ok(())
+        }
+        Err(e) => Err(format!("Failed to index mod: {}", e))
+    }
 }
 
 #[cfg(test)]

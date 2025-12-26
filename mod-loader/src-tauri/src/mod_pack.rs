@@ -16,6 +16,8 @@ pub struct ModPackMod {
     pub version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>, // Optional URL to download the mod directly
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hash: Option<String>, // SHA256 hash of the mod file for verification
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

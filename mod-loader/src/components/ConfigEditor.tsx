@@ -31,7 +31,7 @@ export default function ConfigEditor() {
     try {
       const settings = await getSettings();
       const path = settings.mods_path || await invoke<string>("get_vintage_story_path");
-      const modList = await invoke<Mod[]>("get_mod_list", { modsPath: path });
+      const modList = await invoke<Mod[]>("get_mod_list", { modsPath: path, forceRefresh: false });
       setMods(modList);
     } catch (error) {
       console.error("Failed to load mods:", error);

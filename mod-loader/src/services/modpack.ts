@@ -138,6 +138,15 @@ export async function applyModPack(
     skipped: 0,
   };
 
+  // Load mod list once at the start (use cached index, don't reindex)
+  // This avoids reindexing the entire mod folder for each mod check
+  let modList: any[] = [];
+  try {
+    modList = await invoke<any[]>("get_mod_list", { modsPath, forceRefresh: false });
+  } catch (error) {
+    console.warn("[applyModPack] Failed to load mod list:", error);
+  }
+
   for (let i = 0; i < pack.mods.length; i++) {
     const modPackMod = pack.mods[i];
     
@@ -171,15 +180,7 @@ export async function applyModPack(
         break;
       }
 
-      // Check if mod is already installed
-      const modList = await invoke<any[]>("get_mod_list", { modsPath });
-      
-      // Check for cancellation after mod list check
-      if (abortSignal?.aborted) {
-        console.log("[applyModPack] Application cancelled by user");
-        break;
-      }
-      
+      // Check if mod is already installed (use cached mod list)
       const isInstalled = modList.some(m => m.id === modPackMod.id);
 
       if (!isInstalled) {
@@ -211,6 +212,13 @@ export async function applyModPack(
           console.log(`[applyModPack] Downloading ${modPackMod.id} from ${downloadUrl}`);
           try {
             await apiDownloadMod(modPackMod.id, downloadUrl, modsPath);
+            
+            // Reindex the newly downloaded mod
+            try {
+              await invoke("reindex_mod", { modsPath, modId: modPackMod.id });
+            } catch (reindexError) {
+              console.warn(`[applyModPack] Failed to reindex ${modPackMod.id}:`, reindexError);
+            }
             
             // Check for cancellation after download
             if (abortSignal?.aborted) {

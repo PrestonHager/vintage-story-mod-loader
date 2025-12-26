@@ -64,7 +64,8 @@ export default function ModPackCreator() {
     try {
       const settings = await getSettings();
       const path = settings.mods_path || await invoke<string>("get_vintage_story_path");
-      const modList = await invoke<Mod[]>("get_mod_list", { modsPath: path });
+      // Only index once when loading mods for pack creation (force_refresh: false)
+      const modList = await invoke<Mod[]>("get_mod_list", { modsPath: path, forceRefresh: false });
       setMods(modList); // Load all mods, not just enabled ones
     } catch (error) {
       console.error("Failed to load mods:", error);
@@ -104,7 +105,15 @@ export default function ModPackCreator() {
     const selectedModList = mods.filter(m => selected.has(m.id));
     setModPack(prev => ({
       ...prev,
-      mods: selectedModList.map(m => ({ id: m.id, version: m.version })),
+      mods: selectedModList.map(m => {
+        // Get hash from mod if available (for zip mods)
+        const hash = (m as any).hash;
+        return {
+          id: m.id,
+          version: m.version,
+          ...(hash ? { hash } : {}),
+        };
+      }),
     }));
   }
 

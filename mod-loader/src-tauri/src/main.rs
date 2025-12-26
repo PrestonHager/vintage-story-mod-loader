@@ -21,6 +21,7 @@ fn main() {
             mod_manager::list_config_files,
             mod_manager::read_config,
             mod_manager::write_config,
+            mod_manager::reindex_mod,
             game_detector::detect_vintage_story_path,
             game_detector::get_vintage_story_path,
             config::get_settings,

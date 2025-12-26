@@ -38,6 +38,17 @@
         # Node.js version
         nodejs = pkgs.nodejs_20;
 
+        # Common build inputs for tests and builds
+        commonBuildInputs = with pkgs; [
+          rustToolchain
+          nodejs
+          pkg-config
+          openssl
+          openssl.dev
+          gcc
+          glibc
+        ];
+
         # Build the mod loader application
         modLoader = pkgs.stdenv.mkDerivation {
           name = "vintage-story-mod-loader";
@@ -185,14 +196,10 @@
             type = "app";
             program = "${pkgs.writeShellApplication {
               name = "test-all";
-              runtimeInputs = with pkgs; [
-                rustToolchain
-                nodejs
-                pkg-config
-                openssl
+              runtimeInputs = commonBuildInputs ++ (with pkgs; [
                 playwright
                 playwright.browsers
-              ];
+              ]);
               text = ''
                 set -e
                 echo "Running all tests..."
@@ -223,14 +230,15 @@
             type = "app";
             program = "${pkgs.writeShellApplication {
               name = "test-rust";
-              runtimeInputs = with pkgs; [
-                rustToolchain
-                pkg-config
-                openssl
-              ];
+              runtimeInputs = commonBuildInputs;
               text = ''
                 set -e
                 echo "Running Rust unit tests..."
+                
+                # Set up OpenSSL environment variables for cargo
+                export OPENSSL_DIR="${pkgs.openssl.dev}"
+                export PKG_CONFIG_PATH="${pkgs.openssl.dev}/lib/pkgconfig:${pkgs.lib.makeSearchPath "lib/pkgconfig" [ pkgs.openssl ]}"
+                
                 cd mod-loader/src-tauri
                 cargo test --workspace
               '';

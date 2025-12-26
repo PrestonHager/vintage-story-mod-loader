@@ -2,8 +2,14 @@
 # This overlay can be used in both flake and non-flake Nix configurations
 #
 # Usage:
-#   - As overlay: import this file and add to nixpkgs.overlays
-#   - As flake overlay: use flake.outputs.overlays.default
+#   - As standalone overlay: import this file with a src parameter
+#     Example: (import ./overlay.nix { src = ./.; }) final prev
+#   - As flake overlay: use flake.outputs.overlays.default (source is automatic)
+#
+# For standalone usage, you can also override the source:
+#   (import ./overlay.nix { src = fetchFromGitHub { ... }; }) final prev
+
+{ src ? null }:
 
 final: prev: let
   # Try to use rust-overlay if available, otherwise fall back to system rust
@@ -24,13 +30,15 @@ final: prev: let
   nodejs = prev.nodejs_20;
 
   # Get the source directory
-  # When used as an overlay from a flake, this will be the flake source
-  # When used standalone, this assumes the overlay.nix is in the repo root
-  # The source should be passed when importing, or defaults to parent directory
-  modLoaderSrc = if prev ? lib && prev.lib ? cleanSource then
-    prev.lib.cleanSource (if builtins.pathExists ../mod-loader then ../. else ./. )
+  # If src is provided (standalone usage), use it
+  # Otherwise, try to detect the source (for flake usage, this will be overridden)
+  modLoaderSrc = if src != null then
+    (if prev ? lib && prev.lib ? cleanSource then prev.lib.cleanSource src else src)
   else
-    (if builtins.pathExists ../mod-loader then ../. else ./.);
+    (if builtins.pathExists ../mod-loader then
+      (if prev ? lib && prev.lib ? cleanSource then prev.lib.cleanSource ../. else ../.)
+    else
+      (if prev ? lib && prev.lib ? cleanSource then prev.lib.cleanSource ./. else ./.));
 
 in {
   # WebKitGTK and libsoup aliases for Tauri 2.0 compatibility

@@ -95,9 +95,9 @@
       in
       {
         # Export the overlay for use by other flakes
-        overlays.default = final: prev: {
-          vintage-story-mod-loader = modLoader;
-        };
+        # This wraps the standalone overlay with the flake source
+        overlays.default = final: prev: 
+          (import ./overlay.nix { src = self; }) final prev;
 
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [

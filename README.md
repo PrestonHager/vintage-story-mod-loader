@@ -37,10 +37,13 @@ Add the overlay to your Nix configuration:
 ```nix
 {
   nixpkgs.overlays = [
-    (import (builtins.fetchTarball {
+    (final: prev: (import (builtins.fetchTarball {
       url = "https://github.com/PrestonHager/vintage-story-mod-loader/archive/main.tar.gz";
       sha256 = "0000000000000000000000000000000000000000000000000000"; # Update with actual hash
-    }) + "/overlay.nix")
+    }) + "/overlay.nix") { src = builtins.fetchTarball {
+      url = "https://github.com/PrestonHager/vintage-story-mod-loader/archive/main.tar.gz";
+      sha256 = "0000000000000000000000000000000000000000000000000000";
+    }; } final prev)
   ];
 }
 ```
@@ -50,7 +53,9 @@ Or if you have the repository cloned locally:
 ```nix
 {
   nixpkgs.overlays = [
-    (import /path/to/vintage-story-mod-loader/overlay.nix)
+    (final: prev: (import /path/to/vintage-story-mod-loader/overlay.nix {
+      src = /path/to/vintage-story-mod-loader;
+    }) final prev)
   ];
 }
 ```
@@ -58,12 +63,15 @@ Or if you have the repository cloned locally:
 **For Home Manager (`~/.config/home-manager/home.nix`):**
 
 ```nix
+let
+  modLoaderSrc = builtins.fetchTarball {
+    url = "https://github.com/PrestonHager/vintage-story-mod-loader/archive/main.tar.gz";
+    sha256 = "0000000000000000000000000000000000000000000000000000"; # Update with actual hash
+  };
+in
 {
   nixpkgs.overlays = [
-    (import (builtins.fetchTarball {
-      url = "https://github.com/PrestonHager/vintage-story-mod-loader/archive/main.tar.gz";
-      sha256 = "0000000000000000000000000000000000000000000000000000"; # Update with actual hash
-    }) + "/overlay.nix")
+    (final: prev: (import (modLoaderSrc + "/overlay.nix") { src = modLoaderSrc; }) final prev)
   ];
 
   home.packages = with pkgs; [
@@ -75,12 +83,15 @@ Or if you have the repository cloned locally:
 **For NixOS system packages (`/etc/nixos/configuration.nix`):**
 
 ```nix
+let
+  modLoaderSrc = builtins.fetchTarball {
+    url = "https://github.com/PrestonHager/vintage-story-mod-loader/archive/main.tar.gz";
+    sha256 = "0000000000000000000000000000000000000000000000000000"; # Update with actual hash
+  };
+in
 {
   nixpkgs.overlays = [
-    (import (builtins.fetchTarball {
-      url = "https://github.com/PrestonHager/vintage-story-mod-loader/archive/main.tar.gz";
-      sha256 = "0000000000000000000000000000000000000000000000000000"; # Update with actual hash
-    }) + "/overlay.nix")
+    (final: prev: (import (modLoaderSrc + "/overlay.nix") { src = modLoaderSrc; }) final prev)
   ];
 
   environment.systemPackages = with pkgs; [

@@ -58,6 +58,14 @@
           glib-networking
           librsvg
           librsvg.dev
+          gdk-pixbuf
+          gdk-pixbuf.dev
+          atk
+          atk.dev
+          cairo
+          cairo.dev
+          pango
+          pango.dev
           cargo-tauri
         ];
 
@@ -226,6 +234,11 @@
                   pkgs.gtk3.dev
                   pkgs.webkitgtk.dev
                   pkgs.libsoup.dev
+                  pkgs.gdk-pixbuf.dev
+                  pkgs.atk.dev
+                  pkgs.cairo.dev
+                  pkgs.pango.dev
+                  pkgs.librsvg.dev
                 ]}"
                 
                 echo "=== Running Rust unit tests ==="
@@ -266,6 +279,11 @@
                   pkgs.gtk3.dev
                   pkgs.webkitgtk.dev
                   pkgs.libsoup.dev
+                  pkgs.gdk-pixbuf.dev
+                  pkgs.atk.dev
+                  pkgs.cairo.dev
+                  pkgs.pango.dev
+                  pkgs.librsvg.dev
                 ]}"
                 
                 cd mod-loader/src-tauri

@@ -230,7 +230,7 @@
               ]);
               text = ''
                 # Check if we should pause on error
-                PAUSE_ON_ERROR="${PAUSE_TEST_ON_ERROR:-0}"
+                PAUSE_ON_ERROR="''${PAUSE_TEST_ON_ERROR:-0}"
                 if [ "$PAUSE_ON_ERROR" = "1" ]; then
                   set -e
                 else

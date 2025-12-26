@@ -43,10 +43,11 @@ export async function importModPack(): Promise<ModPack | null> {
     if (typeof filePath === "string") {
       console.log("[modpack.ts] File path is a string:", filePath);
       path = filePath;
-    } else if (Array.isArray(filePath)) {
+    } else if (filePath !== null && filePath !== undefined && Array.isArray(filePath)) {
       console.log("[modpack.ts] File path is an array, using first element:", filePath[0]);
-      if (filePath.length > 0 && typeof filePath[0] === "string") {
-        path = filePath[0];
+      const filePathArray = filePath as string[];
+      if (filePathArray.length > 0 && typeof filePathArray[0] === "string") {
+        path = filePathArray[0];
       }
     } else if (filePath === null || filePath === undefined) {
       // User cancelled

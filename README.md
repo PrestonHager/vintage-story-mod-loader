@@ -71,6 +71,7 @@ npm run test:e2e
 ## Documentation
 
 See the [documentation website](https://PrestonHager.github.io/vintage-story-mod-loader/) for:
+
 - User Guide
 - Designer Guide
 - FAQ
@@ -81,11 +82,12 @@ Contributions are welcome! Please open an issue or submit a pull request.
 
 ## License
 
-[Add your license here]
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
+
+See the [LICENSE](LICENSE) file for the full license text.
 
 ## Acknowledgments
 
 - Vintage Story community
 - Tauri framework
 - React community
-

@@ -16,15 +16,15 @@ A cross-platform mod loader and manager for Vintage Story that provides an intui
 
 ### Windows
 
-Download the `.exe` installer from the [Releases](https://github.com/yourusername/vintage-story-mod-loader/releases) page.
+Download the `.exe` installer from the [Releases](https://github.com/PrestonHager/vintage-story-mod-loader/releases) page.
 
 ### macOS
 
-Download the `.dmg` file from the [Releases](https://github.com/yourusername/vintage-story-mod-loader/releases) page.
+Download the `.dmg` file from the [Releases](https://github.com/PrestonHager/vintage-story-mod-loader/releases) page.
 
 ### Linux
 
-Download the `.AppImage` or `.deb` package from the [Releases](https://github.com/yourusername/vintage-story-mod-loader/releases) page.
+Download the `.AppImage` or `.deb` package from the [Releases](https://github.com/PrestonHager/vintage-story-mod-loader/releases) page.
 
 ## Development
 
@@ -38,7 +38,7 @@ Download the `.AppImage` or `.deb` package from the [Releases](https://github.co
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/vintage-story-mod-loader.git
+git clone https://github.com/PrestonHager/vintage-story-mod-loader.git
 cd vintage-story-mod-loader
 
 # Install dependencies
@@ -70,7 +70,7 @@ npm run test:e2e
 
 ## Documentation
 
-See the [documentation website](https://yourusername.github.io/vintage-story-mod-loader/) for:
+See the [documentation website](https://PrestonHager.github.io/vintage-story-mod-loader/) for:
 - User Guide
 - Designer Guide
 - FAQ

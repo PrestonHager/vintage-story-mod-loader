@@ -36,6 +36,26 @@ Download the `.AppImage` or `.deb` package from the [Releases](https://github.co
 
 ### Setup
 
+#### Option 1: Using Nix (Recommended for NixOS/Linux)
+
+```bash
+# Clone the repository
+git clone https://github.com/PrestonHager/vintage-story-mod-loader.git
+cd vintage-story-mod-loader
+
+# Enter the Nix development shell (provides Node.js, Rust, and all dependencies)
+nix develop
+
+# Install dependencies (must be in mod-loader directory)
+cd mod-loader
+npm install
+
+# Run in development mode
+npm run dev
+```
+
+#### Option 2: Manual Installation
+
 ```bash
 # Clone the repository
 git clone https://github.com/PrestonHager/vintage-story-mod-loader.git
@@ -45,7 +65,7 @@ cd vintage-story-mod-loader
 cd mod-loader
 npm install
 
-# Run in development mode (must be in mod-loader directory)
+# Run in development mode
 npm run dev
 ```
 

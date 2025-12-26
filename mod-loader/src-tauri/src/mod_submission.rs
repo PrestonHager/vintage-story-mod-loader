@@ -20,12 +20,13 @@ pub async fn submit_mod_pack(
 
     // TODO: Implement actual authentication and form submission
     // This is a placeholder that will need to be updated once the API is discovered
-    
+
     // For now, return a mock response
     Ok(SubmissionResponse {
         success: true,
-        message: "Mod pack submission not yet fully implemented. Please submit manually via the website.".to_string(),
+        message:
+            "Mod pack submission not yet fully implemented. Please submit manually via the website."
+                .to_string(),
         mod_id: None,
     })
 }
-

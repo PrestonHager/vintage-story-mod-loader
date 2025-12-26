@@ -28,10 +28,16 @@ export default function ModList() {
       const modList = await invoke<Mod[]>("get_mod_list", { modsPath: path, forceRefresh: true });
       setMods(modList);
       
-      // Check status for all mods
-      await checkAllModStatuses(path);
+      // Check status for all mods (don't block on errors)
+      checkAllModStatuses(path).catch((error) => {
+        console.error("Failed to check mod statuses:", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        showToast(`Warning: Some mod status checks failed: ${errorMessage}`, "warning", 5000);
+      });
     } catch (error) {
       console.error("Failed to load mods:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      showToast(`Failed to load mods: ${errorMessage}`, "error", 6000);
     } finally {
       setLoading(false);
     }

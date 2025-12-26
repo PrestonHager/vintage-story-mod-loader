@@ -16,8 +16,8 @@ pub async fn detect_vintage_story_path() -> Result<Option<String>, String> {
 #[tauri::command]
 pub async fn get_vintage_story_path() -> Result<String, String> {
     // Get the mods directory path based on platform
-    let mods_path = get_mods_directory_path()
-        .ok_or("Failed to determine Vintage Story mods directory")?;
+    let mods_path =
+        get_mods_directory_path().ok_or("Failed to determine Vintage Story mods directory")?;
 
     Ok(mods_path.to_string_lossy().to_string())
 }
@@ -42,10 +42,12 @@ fn get_default_paths() -> Vec<PathBuf> {
     #[cfg(target_os = "macos")]
     {
         if let Some(home) = std::env::var_os("HOME") {
-            paths.push(PathBuf::from(home)
-                .join("Library")
-                .join("Application Support")
-                .join("VintagestoryData"));
+            paths.push(
+                PathBuf::from(home)
+                    .join("Library")
+                    .join("Application Support")
+                    .join("VintagestoryData"),
+            );
         }
     }
 
@@ -55,24 +57,28 @@ fn get_default_paths() -> Vec<PathBuf> {
 fn get_mods_directory_path() -> Option<PathBuf> {
     #[cfg(target_os = "windows")]
     {
-        std::env::var_os("APPDATA")
-            .map(|p| PathBuf::from(p).join("VintagestoryData").join("Mods"))
+        std::env::var_os("APPDATA").map(|p| PathBuf::from(p).join("VintagestoryData").join("Mods"))
     }
 
     #[cfg(target_os = "linux")]
     {
-        std::env::var_os("HOME")
-            .map(|p| PathBuf::from(p).join(".config").join("VintagestoryData").join("Mods"))
+        std::env::var_os("HOME").map(|p| {
+            PathBuf::from(p)
+                .join(".config")
+                .join("VintagestoryData")
+                .join("Mods")
+        })
     }
 
     #[cfg(target_os = "macos")]
     {
-        std::env::var_os("HOME")
-            .map(|p| PathBuf::from(p)
+        std::env::var_os("HOME").map(|p| {
+            PathBuf::from(p)
                 .join("Library")
                 .join("Application Support")
                 .join("VintagestoryData")
-                .join("Mods"))
+                .join("Mods")
+        })
     }
 }
 

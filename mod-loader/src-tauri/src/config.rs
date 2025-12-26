@@ -1,6 +1,6 @@
+use dirs;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use dirs;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -51,8 +51,8 @@ pub async fn get_settings() -> Result<Settings, String> {
     let content = std::fs::read_to_string(&config_path)
         .map_err(|e| format!("Failed to read settings: {}", e))?;
 
-    let settings: Settings = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse settings: {}", e))?;
+    let settings: Settings =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse settings: {}", e))?;
 
     Ok(settings)
 }
@@ -73,8 +73,8 @@ pub async fn save_settings(settings: Settings) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
     use std::fs;
+    use tempfile::TempDir;
 
     #[test]
     fn test_settings_default() {
@@ -93,8 +93,11 @@ mod tests {
 
         let json = serde_json::to_string(&settings).unwrap();
         let deserialized: Settings = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(deserialized.theme, "dark");
-        assert_eq!(deserialized.vintage_story_path, Some("/test/path".to_string()));
+        assert_eq!(
+            deserialized.vintage_story_path,
+            Some("/test/path".to_string())
+        );
     }
 }

@@ -59,18 +59,26 @@ pub enum ModPackError {
 impl ModPack {
     pub fn validate(&self, strict: bool) -> Result<(), ModPackError> {
         if self.name.is_empty() {
-            return Err(ModPackError::Validation("Mod pack name cannot be empty".to_string()));
+            return Err(ModPackError::Validation(
+                "Mod pack name cannot be empty".to_string(),
+            ));
         }
         if strict && self.version.is_empty() {
-            return Err(ModPackError::Validation("Mod pack version cannot be empty".to_string()));
+            return Err(ModPackError::Validation(
+                "Mod pack version cannot be empty".to_string(),
+            ));
         }
         if strict && self.mods.is_empty() {
-            return Err(ModPackError::Validation("Mod pack must contain at least one mod".to_string()));
+            return Err(ModPackError::Validation(
+                "Mod pack must contain at least one mod".to_string(),
+            ));
         }
         if let Some(ref summary) = self.metadata.summary {
             if summary.len() > 100 {
                 if strict {
-                    return Err(ModPackError::Validation("Summary must be 100 characters or less".to_string()));
+                    return Err(ModPackError::Validation(
+                        "Summary must be 100 characters or less".to_string(),
+                    ));
                 } else {
                     eprintln!("[validate] WARNING: Summary exceeds 100 characters ({} chars). This is allowed for imports but may cause issues when submitting to the mod database.", summary.len());
                 }
@@ -113,23 +121,23 @@ pub async fn export_mod_pack(pack: ModPack, file_path: String) -> Result<(), Str
 pub async fn import_mod_pack(file_path: String) -> Result<ModPack, String> {
     eprintln!("[import_mod_pack] Starting import process");
     eprintln!("[import_mod_pack] Received file_path: {}", file_path);
-    
+
     let path = Path::new(&file_path);
     eprintln!("[import_mod_pack] Path object created: {:?}", path);
-    
+
     if !path.exists() {
         let err = format!("File does not exist: {}", file_path);
         eprintln!("[import_mod_pack] ERROR: {}", err);
         return Err(err);
     }
-    
+
     eprintln!("[import_mod_pack] File exists, checking if it's a file...");
     if !path.is_file() {
         let err = format!("Path is not a file: {}", file_path);
         eprintln!("[import_mod_pack] ERROR: {}", err);
         return Err(err);
     }
-    
+
     eprintln!("[import_mod_pack] Attempting to import mod pack from file...");
     match ModPack::from_file(path) {
         Ok(pack) => {
@@ -146,4 +154,3 @@ pub async fn import_mod_pack(file_path: String) -> Result<ModPack, String> {
         }
     }
 }
-

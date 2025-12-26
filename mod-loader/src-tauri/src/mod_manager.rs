@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
-use tauri::api::path::app_data_dir;
-use tauri::{command, Config};
+use std::path::Path;
+use tauri::command;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ModInfo {

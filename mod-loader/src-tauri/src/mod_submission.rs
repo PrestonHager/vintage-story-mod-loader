@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 const MOD_DB_BASE_URL: &str = "https://mods.vintagestory.at";
 
@@ -12,11 +11,11 @@ pub struct SubmissionResponse {
 
 #[tauri::command]
 pub async fn submit_mod_pack(
-    mod_pack: crate::mod_pack::ModPack,
-    username: Option<String>,
-    password: Option<String>,
+    _mod_pack: crate::mod_pack::ModPack,
+    _username: Option<String>,
+    _password: Option<String>,
 ) -> Result<SubmissionResponse, String> {
-    let client = reqwest::Client::builder()
+    let _client = reqwest::Client::builder()
         .cookie_store(true)
         .build()
         .map_err(|e| format!("Failed to create HTTP client: {}", e))?;

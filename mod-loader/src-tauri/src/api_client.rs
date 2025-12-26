@@ -89,7 +89,6 @@ pub async fn get_mod_details(mod_id: String) -> Result<ModDatabaseMod, String> {
 
 #[tauri::command]
 pub async fn download_mod(mod_id: String, download_url: String, mods_path: String) -> Result<String, String> {
-    use std::io::Write;
     use zip::ZipArchive;
     
     let client = reqwest::Client::new();

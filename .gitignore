@@ -22,6 +22,7 @@ build/
 # Tauri
 mod-loader/src-tauri/target/
 mod-loader/src-tauri/Cargo.lock
+mod-loader/src-tauri/gen/
 
 # IDE
 .vscode/

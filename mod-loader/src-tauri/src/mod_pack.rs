@@ -53,14 +53,14 @@ pub enum ModPackError {
 }
 
 impl ModPack {
-    pub fn validate(&self) -> Result<(), ModPackError> {
+    pub fn validate(&self, strict: bool) -> Result<(), ModPackError> {
         if self.name.is_empty() {
             return Err(ModPackError::Validation("Mod pack name cannot be empty".to_string()));
         }
-        if self.version.is_empty() {
+        if strict && self.version.is_empty() {
             return Err(ModPackError::Validation("Mod pack version cannot be empty".to_string()));
         }
-        if self.mods.is_empty() {
+        if strict && self.mods.is_empty() {
             return Err(ModPackError::Validation("Mod pack must contain at least one mod".to_string()));
         }
         if let Some(ref summary) = self.metadata.summary {
@@ -74,12 +74,14 @@ impl ModPack {
     pub fn from_file(path: &Path) -> Result<Self, ModPackError> {
         let content = std::fs::read_to_string(path)?;
         let pack: ModPack = serde_json::from_str(&content)?;
-        pack.validate()?;
+        // Use non-strict validation for imports (allow missing version, empty mods list)
+        pack.validate(false)?;
         Ok(pack)
     }
 
     pub fn to_file(&self, path: &Path) -> Result<(), ModPackError> {
-        self.validate()?;
+        // Use strict validation for exports
+        self.validate(true)?;
         let content = serde_json::to_string_pretty(self)?;
         std::fs::write(path, content)?;
         Ok(())
@@ -88,7 +90,7 @@ impl ModPack {
 
 #[tauri::command]
 pub async fn create_mod_pack(pack: ModPack) -> Result<ModPack, String> {
-    pack.validate().map_err(|e| e.to_string())?;
+    pack.validate(true).map_err(|e| e.to_string())?;
     Ok(pack)
 }
 

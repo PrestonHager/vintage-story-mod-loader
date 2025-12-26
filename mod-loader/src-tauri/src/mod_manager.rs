@@ -33,8 +33,10 @@ pub enum ModManagerError {
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("Mod not found: {0}")]
+    #[allow(dead_code)]
     ModNotFound(String),
     #[error("Invalid modinfo.json: {0}")]
+    #[allow(dead_code)]
     InvalidModInfo(String),
 }
 

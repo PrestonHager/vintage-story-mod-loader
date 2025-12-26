@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-const MOD_DB_BASE_URL: &str = "https://mods.vintagestory.at";
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubmissionResponse {
     pub success: bool,

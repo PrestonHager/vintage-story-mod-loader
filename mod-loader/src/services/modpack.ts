@@ -17,19 +17,35 @@ export async function exportModPack(pack: ModPack): Promise<void> {
 }
 
 export async function importModPack(): Promise<ModPack | null> {
-  const filePath = await open({
-    filters: [{
-      name: "Mod Pack",
-      extensions: ["json"]
-    }],
-    multiple: false
-  });
+  try {
+    const filePath = await open({
+      filters: [{
+        name: "Mod Pack",
+        extensions: ["json"]
+      }],
+      multiple: false
+    });
 
-  if (filePath && typeof filePath === "string") {
-    return await invoke<ModPack>("import_mod_pack", { filePath });
+    // Handle different return types from Tauri dialog
+    let path: string | null = null;
+    if (typeof filePath === "string") {
+      path = filePath;
+    } else if (Array.isArray(filePath) && filePath.length > 0) {
+      path = filePath[0];
+    } else if (filePath === null) {
+      // User cancelled
+      return null;
+    }
+
+    if (path) {
+      return await invoke<ModPack>("import_mod_pack", { filePath: path });
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Failed to import mod pack:", error);
+    throw error;
   }
-
-  return null;
 }
 
 export async function applyModPack(pack: ModPack, modsPath: string): Promise<void> {

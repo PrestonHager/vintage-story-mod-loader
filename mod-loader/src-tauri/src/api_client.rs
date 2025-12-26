@@ -4,16 +4,37 @@ use std::collections::HashMap;
 const MOD_DB_BASE_URL: &str = "https://mods.vintagestory.at";
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct ModDatabaseMod {
+    #[serde(default)]
     pub id: String,
+    #[serde(default)]
     pub name: String,
+    #[serde(default)]
     pub version: String,
     pub description: Option<String>,
     pub author: Option<String>,
     pub download_url: Option<String>,
     pub thumbnail_url: Option<String>,
     pub category: Option<String>,
+    #[serde(default)]
     pub tags: Vec<String>,
+}
+
+impl Default for ModDatabaseMod {
+    fn default() -> Self {
+        Self {
+            id: String::new(),
+            name: String::new(),
+            version: String::new(),
+            description: None,
+            author: None,
+            download_url: None,
+            thumbnail_url: None,
+            category: None,
+            tags: vec![],
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -24,15 +45,7 @@ pub struct ModSearchResult {
     pub per_page: usize,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum ApiClientError {
-    #[error("HTTP error: {0}")]
-    Http(#[from] reqwest::Error),
-    #[error("JSON error: {0}")]
-    Json(#[from] serde_json::Error),
-    #[error("API error: {0}")]
-    Api(String),
-}
+// ApiClientError removed - using String errors directly for simplicity
 
 #[tauri::command]
 pub async fn search_mods(query: Option<String>, page: Option<usize>) -> Result<ModSearchResult, String> {
@@ -60,13 +73,35 @@ pub async fn search_mods(query: Option<String>, page: Option<usize>) -> Result<M
     {
         Ok(response) => {
             if response.status().is_success() {
-                match response.json::<ModSearchResult>().await {
-                    Ok(result) => return Ok(result),
-                    Err(e) => {
-                        eprintln!("Failed to parse API response: {}", e);
-                        // Fall through to mock data
+                // Try to parse as JSON first
+                let text = response.text().await.unwrap_or_default();
+                if let Ok(result) = serde_json::from_str::<ModSearchResult>(&text) {
+                    return Ok(result);
+                }
+                // If that fails, try to parse as a generic JSON object and extract mods
+                if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(&text) {
+                    // Try to extract mods array from various possible structures
+                    if let Some(mods_array) = json_value.get("mods").or_else(|| json_value.get("data"))
+                        .and_then(|v| v.as_array()) {
+                        let mut mods = Vec::new();
+                        for mod_value in mods_array {
+                            if let Ok(mod_data) = serde_json::from_value::<ModDatabaseMod>(mod_value.clone()) {
+                                mods.push(mod_data);
+                            }
+                        }
+                        if !mods.is_empty() {
+                            let total = mods.len();
+                            return Ok(ModSearchResult {
+                                mods,
+                                total,
+                                page,
+                                per_page: 20,
+                            });
+                        }
                     }
                 }
+                eprintln!("Failed to parse API response structure");
+                // Fall through to mock data
             } else {
                 eprintln!("API returned error status: {}", response.status());
                 // Fall through to mock data

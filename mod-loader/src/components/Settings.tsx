@@ -39,6 +39,8 @@ export default function Settings() {
     try {
       setSaving(true);
       await saveSettings(settings);
+      // Apply theme immediately
+      document.documentElement.setAttribute("data-theme", settings.theme);
       alert("Settings saved successfully!");
     } catch (error) {
       console.error("Failed to save settings:", error);
@@ -102,7 +104,12 @@ export default function Settings() {
             <label>Theme</label>
             <select
               value={settings.theme}
-              onChange={(e) => setSettings(prev => ({ ...prev, theme: e.target.value }))}
+              onChange={(e) => {
+                const newTheme = e.target.value;
+                setSettings(prev => ({ ...prev, theme: newTheme }));
+                // Apply theme immediately for preview
+                document.documentElement.setAttribute("data-theme", newTheme);
+              }}
             >
               <option value="light">Light</option>
               <option value="dark">Dark</option>

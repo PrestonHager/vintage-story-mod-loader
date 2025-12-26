@@ -12,13 +12,19 @@ export default function ModPackImporter() {
   async function handleImport() {
     try {
       setLoading(true);
+      console.log("Import button clicked");
       const pack = await importModPack();
       if (pack) {
         setModPack(pack);
+        alert(`Successfully imported mod pack: ${pack.name}`);
+      } else {
+        // User cancelled - no need to show error
+        console.log("Import cancelled by user");
       }
     } catch (error) {
       console.error("Failed to import mod pack:", error);
-      alert(`Failed to import mod pack: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert(`Failed to import mod pack: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

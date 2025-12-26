@@ -18,13 +18,17 @@ export async function exportModPack(pack: ModPack): Promise<void> {
 
 export async function importModPack(): Promise<ModPack | null> {
   try {
+    console.log("Opening file dialog...");
     const filePath = await open({
       filters: [{
         name: "Mod Pack",
         extensions: ["json"]
       }],
-      multiple: false
+      multiple: false,
+      title: "Select Mod Pack JSON File"
     });
+
+    console.log("File dialog returned:", filePath);
 
     // Handle different return types from Tauri dialog
     let path: string | null = null;
@@ -32,19 +36,25 @@ export async function importModPack(): Promise<ModPack | null> {
       path = filePath;
     } else if (Array.isArray(filePath) && filePath.length > 0) {
       path = filePath[0];
-    } else if (filePath === null) {
+    } else if (filePath === null || filePath === undefined) {
       // User cancelled
+      console.log("User cancelled file selection");
       return null;
     }
 
-    if (path) {
-      return await invoke<ModPack>("import_mod_pack", { filePath: path });
+    if (!path) {
+      console.warn("No file path returned from dialog");
+      return null;
     }
 
-    return null;
+    console.log("Importing mod pack from:", path);
+    const pack = await invoke<ModPack>("import_mod_pack", { filePath: path });
+    console.log("Successfully imported mod pack:", pack.name);
+    return pack;
   } catch (error) {
     console.error("Failed to import mod pack:", error);
-    throw error;
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to import mod pack: ${errorMessage}`);
   }
 }
 

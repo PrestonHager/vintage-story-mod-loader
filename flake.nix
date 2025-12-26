@@ -278,7 +278,8 @@
                 echo "Running Rust unit tests..."
                 
                 # Set up pkg-config environment variables for cargo
-                export OPENSSL_DIR="${pkgs.openssl.dev}"
+                export OPENSSL_DIR="${pkgs.openssl.out}"
+                export OPENSSL_LIB_DIR="${pkgs.openssl.out}/lib"
                 export PKG_CONFIG_PATH="${pkgs.lib.makeSearchPath "lib/pkgconfig" [
                   pkgs.openssl.dev
                   pkgs.glib.dev

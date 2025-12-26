@@ -94,6 +94,8 @@ pub async fn get_mod_list(
     let entries =
         std::fs::read_dir(mods_dir).map_err(|e| format!("Failed to read mods directory: {}", e))?;
 
+    let mut index = load_mod_index(); // Load index once at the start
+
     for entry in entries {
         let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
         let path = entry.path();

@@ -1,13 +1,17 @@
 // API client for downloading mods directly
-// We use the API endpoint /api/mod/<modid> to get download URLs from mod.releases[0].mainfile
-// Format: https://mods.vintagestory.at/download/<number>/<name>_<version>.zip
+// Uses the VS Mod DB API: https://raw.githubusercontent.com/anegostudios/vsmoddb/refs/heads/master/README.md
+// Endpoint: /api/mod/<modid> where modid can be numeric ID or modid string from modinfo.json
+// Response format: JSON with statuscode property and mod.releases[0].mainfile containing the download URL
+// API docs: http://mods.vintagestory.at/api
 
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 struct ModApiResponse {
+    #[serde(rename = "statuscode")]
+    status_code: Option<u16>, // HTTP status code from API response
     #[serde(rename = "mod")]
-    mod_data: ModApiData,
+    mod_data: Option<ModApiData>, // Optional because API may return error
 }
 
 #[derive(Debug, Deserialize)]
@@ -17,7 +21,7 @@ struct ModApiData {
 
 #[derive(Debug, Deserialize)]
 struct ModRelease {
-    mainfile: String, // This is the direct download URL
+    mainfile: String, // Full URI to download file - always respect full URIs returned by API
 }
 
 #[tauri::command]
@@ -30,26 +34,29 @@ pub async fn get_mod_download_url(mod_id: String, mod_url: Option<String>) -> Re
         .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
     
     // Try to construct the API URL
+    // API base URL: http://mods.vintagestory.at/api (per API docs)
+    // Endpoint: /api/mod/<modid> where modid can be numeric ID or modid string
     let api_url = if let Some(url) = mod_url {
-        // If it's already an API URL, use it
+        // If it's already an API URL, use it (handle both http and https)
         if url.contains("/api/mod/") {
-            url
+            // Ensure we use http:// as per API docs (though https may also work)
+            url.replace("https://mods.vintagestory.at/api/mod/", "http://mods.vintagestory.at/api/mod/")
         } else if url.contains("/api/mods/") {
             // Old format - convert to new format
             let mod_id_from_url = url.split("/api/mods/").last().unwrap_or(&mod_id);
-            format!("https://mods.vintagestory.at/api/mod/{}", mod_id_from_url)
+            format!("http://mods.vintagestory.at/api/mod/{}", mod_id_from_url)
         } else if url.contains("/show/mod/") {
             // Convert page URL to API URL
             let mod_id_from_url = url.split("/show/mod/").last().unwrap_or(&mod_id);
-            format!("https://mods.vintagestory.at/api/mod/{}", mod_id_from_url)
+            format!("http://mods.vintagestory.at/api/mod/{}", mod_id_from_url)
         } else if url.contains("mods.vintagestory.at") {
             // Try to extract mod ID from URL or use provided mod_id
-            format!("https://mods.vintagestory.at/api/mod/{}", mod_id)
+            format!("http://mods.vintagestory.at/api/mod/{}", mod_id)
         } else {
-            format!("https://mods.vintagestory.at/api/mod/{}", mod_id)
+            format!("http://mods.vintagestory.at/api/mod/{}", mod_id)
         }
     } else {
-        format!("https://mods.vintagestory.at/api/mod/{}", mod_id)
+        format!("http://mods.vintagestory.at/api/mod/{}", mod_id)
     };
     
     eprintln!("[get_mod_download_url] Fetching mod API: {}", api_url);
@@ -66,19 +73,34 @@ pub async fn get_mod_download_url(mod_id: String, mod_url: Option<String>) -> Re
                 match response.text().await {
                     Ok(text) => {
                         // Try to parse as JSON API response
+                        // API returns JSON with statuscode property and mod data
                         match serde_json::from_str::<ModApiResponse>(&text) {
                             Ok(api_response) => {
+                                // Check statuscode if present (API uses HTTP error codes)
+                                if let Some(status) = api_response.status_code {
+                                    if status >= 400 {
+                                        eprintln!("[get_mod_download_url] API returned error statuscode: {}", status);
+                                        // Continue to fallback
+                                    }
+                                }
+                                
                                 // Get the first (latest) release's mainfile URL
-                                if let Some(release) = api_response.mod_data.releases.first() {
-                                    let download_url = release.mainfile.clone();
-                                    eprintln!("[get_mod_download_url] Found download URL from API: {}", download_url);
-                                    return Ok(download_url);
+                                // API docs: "Always respect the full uris returned by the api"
+                                if let Some(mod_data) = api_response.mod_data {
+                                    if let Some(release) = mod_data.releases.first() {
+                                        let download_url = release.mainfile.clone();
+                                        eprintln!("[get_mod_download_url] Found download URL from API: {}", download_url);
+                                        return Ok(download_url);
+                                    } else {
+                                        eprintln!("[get_mod_download_url] No releases found in API response");
+                                    }
                                 } else {
-                                    eprintln!("[get_mod_download_url] No releases found in API response");
+                                    eprintln!("[get_mod_download_url] No mod data in API response (may be error response)");
                                 }
                             }
                             Err(e) => {
                                 eprintln!("[get_mod_download_url] Failed to parse API JSON: {}", e);
+                                eprintln!("[get_mod_download_url] Response text: {}", &text.chars().take(500).collect::<String>());
                             }
                         }
                     }

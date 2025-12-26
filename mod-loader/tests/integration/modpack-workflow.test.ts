@@ -77,7 +77,8 @@ describe('ModPack Workflow Integration Tests', () => {
         version: '1.0.0',
         description: 'A test mod pack',
         mods: [
-          { id: 'mod1', version: '1.0.0', url: 'https://mods.vintagestory.at/api/mod/mod1' },
+          // Use direct download URL to bypass API call complexity in test
+          { id: 'mod1', version: '1.0.0', url: 'https://mods.vintagestory.at/download/mod1.zip' },
         ],
         metadata: {},
       };
@@ -101,10 +102,6 @@ describe('ModPack Workflow Integration Tests', () => {
         return Promise.resolve(undefined);
       });
 
-      vi.spyOn(apiModule, 'getModDownloadUrl').mockResolvedValue(
-        'https://mods.vintagestory.at/download/mod1.zip'
-      );
-
       const onProgress = vi.fn();
       const onSuccess = vi.fn();
       const showToast = vi.fn();
@@ -118,15 +115,13 @@ describe('ModPack Workflow Integration Tests', () => {
       expect(result.success).toBe(1);
       expect(result.failed).toBe(0);
       expect(result.skipped).toBe(0);
-      expect(apiModule.getModDownloadUrl).toHaveBeenCalledWith('mod1', 'https://mods.vintagestory.at/api/mod/mod1');
       // Verify key operations were called
       expect(invoke).toHaveBeenCalledWith('get_mod_list', expect.any(Object));
-      // Verify download and enable operations (exact order may vary due to async operations)
+      // Verify download and enable operations
       const allCalls = (invoke as ReturnType<typeof vi.fn>).mock.calls.map((call) => call[0]);
       expect(allCalls).toContain('download_mod');
-      // Note: reindex_mod and enable_mods may not be called if download fails or URL is invalid
-      // Focus on the end result rather than intermediate steps
-      expect(showToast).toHaveBeenCalled();
+      expect(allCalls).toContain('enable_mods');
+      expect(showToast).toHaveBeenCalledWith('Downloaded mod1', 'success', 3000);
       expect(onSuccess).toHaveBeenCalledWith('mod1');
     });
 

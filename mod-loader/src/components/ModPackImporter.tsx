@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { importModPack, applyModPack } from "../services/modpack";
 import { getSettings } from "../services/storage";
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "@tauri-apps/api/core";
 import type { ModPack } from "../types/mod";
 
 export default function ModPackImporter() {

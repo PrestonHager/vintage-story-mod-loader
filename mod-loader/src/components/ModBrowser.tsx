@@ -35,7 +35,7 @@ export default function ModBrowser() {
     try {
       setDownloading(prev => new Set(prev).add(mod.id));
       const { getSettings } = await import("../services/storage");
-      const { invoke } = await import("@tauri-apps/api/tauri");
+        const { invoke } = await import("@tauri-apps/api/core");
       const settings = await getSettings();
       const modsPath = settings.mods_path || await invoke<string>("get_vintage_story_path");
       await downloadMod(mod.id, mod.download_url, modsPath);

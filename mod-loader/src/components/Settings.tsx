@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { getSettings, saveSettings, type Settings as SettingsType } from "../services/storage";
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "@tauri-apps/api/core";
 
 export default function Settings() {
   const [settings, setSettings] = useState<SettingsType>({

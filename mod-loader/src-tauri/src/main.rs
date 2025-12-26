@@ -8,10 +8,11 @@ mod mod_manager;
 mod mod_pack;
 mod mod_submission;
 
-use tauri::Manager;
-
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             mod_manager::get_mod_list,
             mod_manager::enable_mods,

@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "@tauri-apps/api/core";
 import type { ModSearchResult, ModDatabaseMod } from "../types/mod";
 
 export async function searchMods(query?: string, page?: number): Promise<ModSearchResult> {

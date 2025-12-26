@@ -1,5 +1,5 @@
-import { invoke } from "@tauri-apps/api/tauri";
-import { open, save } from "@tauri-apps/api/dialog";
+import { invoke } from "@tauri-apps/api/core";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import type { ModPack } from "../types/mod";
 
 export async function exportModPack(pack: ModPack): Promise<void> {
@@ -35,7 +35,7 @@ export async function importModPack(): Promise<ModPack | null> {
 export async function applyModPack(pack: ModPack, modsPath: string): Promise<void> {
   // Download missing mods and enable all mods in pack
   const { getModDetails, downloadMod } = await import("./api");
-  const { invoke } = await import("@tauri-apps/api/tauri");
+  const { invoke } = await import("@tauri-apps/api/core");
 
   for (const modPackMod of pack.mods) {
     try {

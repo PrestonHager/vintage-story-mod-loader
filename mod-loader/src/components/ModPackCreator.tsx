@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "@tauri-apps/api/core";
 import { useNavigate } from "react-router-dom";
 import type { Mod, ModPack } from "../types/mod";
 import { getSettings } from "../services/storage";

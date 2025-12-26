@@ -6,232 +6,232 @@
     {
       "id": "offlinefoodnospoil",
       "version": "1.5.0",
-      "url": "https://mods.vintagestory.at/offlinefoodnospoil"
+      "url": "https://mods.vintagestory.at/api/mods/offlinefoodnospoil"
     },
     {
       "id": "realsmoke",
       "version": "1.1.10",
-      "url": "https://mods.vintagestory.at/realsmoke"
+      "url": "https://mods.vintagestory.at/api/mods/realsmoke"
     },
     {
       "id": "extrainfo",
       "version": "1.10.1",
-      "url": "https://mods.vintagestory.at/extrainfo"
+      "url": "https://mods.vintagestory.at/api/mods/extrainfo"
     },
     {
       "id": "justthepalisades",
       "version": "1.0.0",
-      "url": "https://mods.vintagestory.at/justthepalisades"
+      "url": "https://mods.vintagestory.at/api/mods/justthepalisades"
     },
     {
       "id": "immersivelanterns",
       "version": "0.3.1",
-      "url": "https://mods.vintagestory.at/immersivelanterns"
+      "url": "https://mods.vintagestory.at/api/mods/immersivelanterns"
     },
     {
       "id": "freedomunits",
       "version": "1.1.5",
-      "url": "https://mods.vintagestory.at/freedomunits"
+      "url": "https://mods.vintagestory.at/api/mods/freedomunits"
     },
     {
       "id": "quiversandsheaths",
       "version": "0.6.6",
-      "url": "https://mods.vintagestory.at/quiversandsheaths"
+      "url": "https://mods.vintagestory.at/api/mods/quiversandsheaths"
     },
     {
       "id": "danatweaks",
       "version": "3.7.1",
-      "url": "https://mods.vintagestory.at/danatweaks"
+      "url": "https://mods.vintagestory.at/api/mods/danatweaks"
     },
     {
       "id": "bloodtrail",
       "version": "1.1.8",
-      "url": "https://mods.vintagestory.at/bloodtrail"
+      "url": "https://mods.vintagestory.at/api/mods/bloodtrail"
     },
     {
       "id": "scaffolding",
       "version": "1.2.5",
-      "url": "https://mods.vintagestory.at/scaffolding"
+      "url": "https://mods.vintagestory.at/api/mods/scaffolding"
     },
     {
       "id": "temporalsymphony",
       "version": "unknown",
-      "url": "https://mods.vintagestory.at/temporalsymphony"
+      "url": "https://mods.vintagestory.at/api/mods/temporalsymphony"
     },
     {
       "id": "cavesymphony",
       "version": "unknown",
-      "url": "https://mods.vintagestory.at/cavesymphony"
+      "url": "https://mods.vintagestory.at/api/mods/cavesymphony"
     },
     {
       "id": "alchemy",
       "version": "1.7.23",
-      "url": "https://mods.vintagestory.at/alchemy"
+      "url": "https://mods.vintagestory.at/api/mods/alchemy"
     },
     {
       "id": "beararmorrepair",
       "version": "1.0.3",
-      "url": "https://mods.vintagestory.at/beararmorrepair"
+      "url": "https://mods.vintagestory.at/api/mods/beararmorrepair"
     },
     {
       "id": "usefultraders",
       "version": "2.3.1",
-      "url": "https://mods.vintagestory.at/show/mod/19225"
+      "url": "https://mods.vintagestory.at/api/mods/usefultraders"
     },
     {
       "id": "vsroofing",
       "version": "1.0.16",
-      "url": "https://mods.vintagestory.at/show/mod/30143"
+      "url": "https://mods.vintagestory.at/api/mods/vsroofing"
     },
     {
       "id": "noroofingrecipes",
       "version": "1.0.1",
-      "url": "https://mods.vintagestory.at/noroofingrecipes"
+      "url": "https://mods.vintagestory.at/api/mods/noroofingrecipes"
     },
     {
       "id": "vsimgui",
       "version": "1.1.16",
-      "url": "https://mods.vintagestory.at/vsimgui"
+      "url": "https://mods.vintagestory.at/api/mods/vsimgui"
     },
     {
       "id": "TerraPrety",
       "version": "7.0.9",
-      "url": "https://mods.vintagestory.at/terrapretty"
+      "url": "https://mods.vintagestory.at/api/mods/TerraPrety"
     },
     {
       "id": "VanillaVariants",
       "version": "7.1.0",
-      "url": "https://mods.vintagestory.at/vanillavariants"
+      "url": "https://mods.vintagestory.at/api/mods/VanillaVariants"
     },
     {
       "id": "StoneQuarry",
       "version": "3.5.1",
-      "url": "https://mods.vintagestory.at/stonequarry"
+      "url": "https://mods.vintagestory.at/api/mods/StoneQuarry"
     },
     {
       "id": "SnowCaps",
       "version": "0.0.0",
-      "url": "https://mods.vintagestory.at/snowcaps"
+      "url": "https://mods.vintagestory.at/api/mods/SnowCaps"
     },
     {
       "id": "stepfixelk",
       "version": "0.0.3",
-      "url": "https://mods.vintagestory.at/stepfixelk"
+      "url": "https://mods.vintagestory.at/api/mods/stepfixelk"
     },
     {
       "id": "PlayerCorpse",
       "version": "1.12.0",
-      "url": "https://mods.vintagestory.at/playercorpse"
+      "url": "https://mods.vintagestory.at/api/mods/PlayerCorpse"
     },
     {
       "id": "RecipePatcher",
       "version": "1.1.2",
-      "url": "https://mods.vintagestory.at/recipepatcher"
+      "url": "https://mods.vintagestory.at/api/mods/RecipePatcher"
     },
     {
       "id": "rivers",
       "version": "4.7.3",
-      "url": "https://mods.vintagestory.at/rivers"
+      "url": "https://mods.vintagestory.at/api/mods/rivers"
     },
     {
       "id": "smithingplus",
       "version": "1.8.3",
-      "url": "https://mods.vintagestory.at/smithingplus"
+      "url": "https://mods.vintagestory.at/api/mods/smithingplus"
     },
     {
       "id": "maltiezcrossbows",
       "version": "1.6.8",
-      "url": "https://mods.vintagestory.at/maltiezcrossbows"
+      "url": "https://mods.vintagestory.at/api/mods/maltiezcrossbows"
     },
     {
       "id": "maltiezfirearms",
       "version": "1.5.3",
-      "url": "https://mods.vintagestory.at/maltiezfirearms"
+      "url": "https://mods.vintagestory.at/api/mods/maltiezfirearms"
     },
     {
       "id": "MaterialNeeds",
       "version": "1.1.7",
-      "url": "https://mods.vintagestory.at/materialneeds"
+      "url": "https://mods.vintagestory.at/api/mods/MaterialNeeds"
     },
     {
       "id": "millwright",
       "version": "1.3.1",
-      "url": "https://mods.vintagestory.at/millwright"
+      "url": "https://mods.vintagestory.at/api/mods/millwright"
     },
     {
       "id": "overhaullib",
       "version": "1.15.7",
-      "url": "https://mods.vintagestory.at/overhaullib"
+      "url": "https://mods.vintagestory.at/api/mods/overhaullib"
     },
     {
       "id": "ExpandedFoods",
       "version": "2.0.0-dev",
-      "url": "https://mods.vintagestory.at/expandedfoods"
+      "url": "https://mods.vintagestory.at/api/mods/ExpandedFoods"
     },
     {
       "id": "farseer",
       "version": "1.3.2",
-      "url": "https://mods.vintagestory.at/farseer"
+      "url": "https://mods.vintagestory.at/api/mods/farseer"
     },
     {
       "id": "foodshelves",
       "version": "2.3.3",
-      "url": "https://mods.vintagestory.at/foodshelves"
+      "url": "https://mods.vintagestory.at/api/mods/foodshelves"
     },
     {
       "id": "CommonLib",
       "version": "2.8.0",
-      "url": "https://mods.vintagestory.at/commonlib"
+      "url": "https://mods.vintagestory.at/api/mods/CommonLib"
     },
     {
       "id": "configlib",
       "version": "1.10.11",
-      "url": "https://mods.vintagestory.at/configlib"
+      "url": "https://mods.vintagestory.at/api/mods/configlib"
     },
     {
       "id": "expanded_matter",
       "version": "3.4.0",
-      "url": "https://mods.vintagestory.at/expandedmatter"
+      "url": "https://mods.vintagestory.at/api/mods/expanded_matter"
     },
     {
       "id": "combatoverhaul",
       "version": "0.10.19",
-      "url": "https://mods.vintagestory.at/combatoverhaul"
+      "url": "https://mods.vintagestory.at/api/mods/combatoverhaul"
     },
     {
       "id": "biomes",
       "version": "2.0.0-dev.8",
-      "url": "https://mods.vintagestory.at/biomes"
+      "url": "https://mods.vintagestory.at/api/mods/biomes"
     },
     {
       "id": "bricklayers",
       "version": "3.1.4",
-      "url": "https://mods.vintagestory.at/bricklayers"
+      "url": "https://mods.vintagestory.at/api/mods/bricklayers"
     },
     {
       "id": "CarryOn",
       "version": "1.12.1",
-      "url": "https://mods.vintagestory.at/carryon"
+      "url": "https://mods.vintagestory.at/api/mods/CarryOn"
     },
     {
       "id": "ACulinaryArtillery",
       "version": "2.0.0-dev2",
-      "url": "https://mods.vintagestory.at/aculinaryartillery"
+      "url": "https://mods.vintagestory.at/api/mods/ACulinaryArtillery"
     },
     {
       "id": "armory",
       "version": "1.6.2",
-      "url": "https://mods.vintagestory.at/armory"
+      "url": "https://mods.vintagestory.at/api/mods/armory"
     },
     {
       "id": "AutoMapMarkers",
       "version": "4.0.3",
-      "url": "https://mods.vintagestory.at/automapmarkers"
+      "url": "https://mods.vintagestory.at/api/mods/AutoMapMarkers"
     },
     {
       "id": "BetterFirepit",
       "version": "1.2.0",
-      "url": "https://mods.vintagestory.at/betterfirepit"
+      "url": "https://mods.vintagestory.at/api/mods/BetterFirepit"
     }
   ],
   "metadata": {

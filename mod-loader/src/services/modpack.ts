@@ -116,9 +116,13 @@ export async function applyModPack(
         // Try to use URL from mod pack first, otherwise search the database
         let downloadUrl: string | undefined = modPackMod.url;
         
-        // If URL is a page URL (not a direct download), fetch the download URL from API
-        if (downloadUrl && (downloadUrl.includes('/show/mod/') || downloadUrl.includes('mods.vintagestory.at') && !downloadUrl.includes('/download/'))) {
-          console.log(`[applyModPack] URL appears to be a page URL, fetching download URL from API for ${modPackMod.id}...`);
+        // If URL is a page URL or API endpoint (not a direct download), fetch the download URL from API
+        if (downloadUrl && (
+          downloadUrl.includes('/show/mod/') || 
+          downloadUrl.includes('/api/mods/') ||
+          (downloadUrl.includes('mods.vintagestory.at') && !downloadUrl.includes('/download/'))
+        )) {
+          console.log(`[applyModPack] URL appears to be a page/API URL, fetching download URL from API for ${modPackMod.id}...`);
           try {
             const modDetails = await getModDetails(modPackMod.id);
             downloadUrl = modDetails.download_url || undefined;

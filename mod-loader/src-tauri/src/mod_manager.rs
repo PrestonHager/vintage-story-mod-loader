@@ -279,8 +279,7 @@ pub async fn get_mod_list(
                     } else if path.extension().and_then(|s| s.to_str()) == Some("zip")
                         || path.extension().and_then(|s| s.to_str()) == Some("disabled")
                     {
-                        // Handle disabled zip mods
-                        let mut index = load_mod_index();
+                        // Handle disabled zip mods (use the same index loaded at the start)
                         let hash = match hash_file(&path) {
                             Ok(h) => h,
                             Err(_) => continue,

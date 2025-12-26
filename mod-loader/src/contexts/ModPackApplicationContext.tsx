@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import type { ModPack } from "../types/mod";
 
 export interface ModPackApplicationProgress {
@@ -15,10 +15,11 @@ export interface ModPackApplicationProgress {
 
 interface ModPackApplicationContextType {
   progress: ModPackApplicationProgress;
-  startApplication: (modPack: ModPack) => void;
+  startApplication: (modPack: ModPack, abortController: AbortController) => void;
   updateProgress: (update: Partial<ModPackApplicationProgress>) => void;
   cancelApplication: () => void;
   reset: () => void;
+  getAbortController: () => AbortController | null;
 }
 
 const ModPackApplicationContext = createContext<ModPackApplicationContextType | undefined>(undefined);
@@ -43,8 +44,11 @@ export function ModPackApplicationProvider({ children }: { children: ReactNode }
     skipped: 0,
     cancelled: false,
   });
+  
+  const abortControllerRef = React.useRef<AbortController | null>(null);
 
-  const startApplication = useCallback((modPack: ModPack) => {
+  const startApplication = useCallback((modPack: ModPack, abortController: AbortController) => {
+    abortControllerRef.current = abortController;
     setProgress({
       isRunning: true,
       modPack,
@@ -63,14 +67,24 @@ export function ModPackApplicationProvider({ children }: { children: ReactNode }
   }, []);
 
   const cancelApplication = useCallback(() => {
+    // Abort the controller signal to stop the async operations
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      console.log("[ModPackApplicationContext] AbortController aborted");
+    }
     setProgress((prev) => ({
       ...prev,
       cancelled: true,
       isRunning: false,
     }));
   }, []);
+  
+  const getAbortController = useCallback(() => {
+    return abortControllerRef.current;
+  }, []);
 
   const reset = useCallback(() => {
+    abortControllerRef.current = null;
     setProgress({
       isRunning: false,
       modPack: null,
@@ -92,6 +106,7 @@ export function ModPackApplicationProvider({ children }: { children: ReactNode }
         updateProgress,
         cancelApplication,
         reset,
+        getAbortController,
       }}
     >
       {children}

@@ -126,11 +126,30 @@ export async function applyModPack(
     }
 
     try {
+      // Check for cancellation before starting this mod
+      if (abortSignal?.aborted) {
+        console.log("[applyModPack] Application cancelled by user");
+        break;
+      }
+
       // Update progress
       onProgress?.(i, pack.mods.length, modPackMod.id);
 
+      // Check for cancellation after progress update
+      if (abortSignal?.aborted) {
+        console.log("[applyModPack] Application cancelled by user");
+        break;
+      }
+
       // Check if mod is already installed
       const modList = await invoke<any[]>("get_mod_list", { modsPath });
+      
+      // Check for cancellation after mod list check
+      if (abortSignal?.aborted) {
+        console.log("[applyModPack] Application cancelled by user");
+        break;
+      }
+      
       const isInstalled = modList.some(m => m.id === modPackMod.id);
 
       if (!isInstalled) {
@@ -144,10 +163,29 @@ export async function applyModPack(
           (downloadUrl.includes('mods.vintagestory.at') && !downloadUrl.includes('/download/'))
         )) {
           console.log(`[applyModPack] URL appears to be a page/API URL, fetching download URL from API for ${modPackMod.id}...`);
+          
+          // Check for cancellation before API call
+          if (abortSignal?.aborted) {
+            console.log("[applyModPack] Application cancelled by user");
+            break;
+          }
+          
           try {
             const modDetails = await getModDetails(modPackMod.id);
+            
+            // Check for cancellation after API call
+            if (abortSignal?.aborted) {
+              console.log("[applyModPack] Application cancelled by user");
+              break;
+            }
+            
             downloadUrl = modDetails.download_url || undefined;
           } catch (error) {
+            // Don't break on error, but check cancellation
+            if (abortSignal?.aborted) {
+              console.log("[applyModPack] Application cancelled by user");
+              break;
+            }
             console.warn(`[applyModPack] Failed to get mod details for ${modPackMod.id}:`, error);
             downloadUrl = undefined;
           }
@@ -155,20 +193,57 @@ export async function applyModPack(
         
         if (!downloadUrl) {
           console.log(`[applyModPack] No URL in mod pack for ${modPackMod.id}, searching database...`);
+          
+          // Check for cancellation before API call
+          if (abortSignal?.aborted) {
+            console.log("[applyModPack] Application cancelled by user");
+            break;
+          }
+          
           try {
             const modDetails = await getModDetails(modPackMod.id);
+            
+            // Check for cancellation after API call
+            if (abortSignal?.aborted) {
+              console.log("[applyModPack] Application cancelled by user");
+              break;
+            }
+            
             downloadUrl = modDetails.download_url || undefined;
           } catch (error) {
+            // Don't break on error, but check cancellation
+            if (abortSignal?.aborted) {
+              console.log("[applyModPack] Application cancelled by user");
+              break;
+            }
             console.warn(`[applyModPack] Failed to get mod details for ${modPackMod.id}:`, error);
           }
         }
 
         if (downloadUrl) {
+          // Check for cancellation before download
+          if (abortSignal?.aborted) {
+            console.log("[applyModPack] Application cancelled by user");
+            break;
+          }
+          
           console.log(`[applyModPack] Downloading ${modPackMod.id} from ${downloadUrl}`);
           try {
             await downloadMod(modPackMod.id, downloadUrl, modsPath);
+            
+            // Check for cancellation after download
+            if (abortSignal?.aborted) {
+              console.log("[applyModPack] Application cancelled by user");
+              break;
+            }
+            
             showToast?.(`Downloaded ${modPackMod.id}`, "success", 3000);
           } catch (error) {
+            // Check if error is due to cancellation
+            if (abortSignal?.aborted) {
+              console.log("[applyModPack] Application cancelled by user during download");
+              break;
+            }
             const errorMsg = error instanceof Error ? error.message : String(error);
             console.error(`[applyModPack] Failed to download ${modPackMod.id}:`, error);
             showToast?.(`Failed to download ${modPackMod.id}: ${errorMsg}`, "error", 6000);
@@ -191,12 +266,30 @@ export async function applyModPack(
         result.skipped++;
       }
 
+      // Check for cancellation before enabling
+      if (abortSignal?.aborted) {
+        console.log("[applyModPack] Application cancelled by user");
+        break;
+      }
+
       // Enable mod (only if it was downloaded or already installed)
       try {
         await invoke("enable_mods", { modsPath, modIds: [modPackMod.id] });
+        
+        // Check for cancellation after enable
+        if (abortSignal?.aborted) {
+          console.log("[applyModPack] Application cancelled by user");
+          break;
+        }
+        
         onSuccess?.(modPackMod.id);
         result.success++;
       } catch (error) {
+        // Check if error is due to cancellation
+        if (abortSignal?.aborted) {
+          console.log("[applyModPack] Application cancelled by user during enable");
+          break;
+        }
         const errorMsg = error instanceof Error ? error.message : String(error);
         console.error(`[applyModPack] Failed to enable ${modPackMod.id}:`, error);
         showToast?.(`Failed to enable ${modPackMod.id}: ${errorMsg}`, "error", 6000);

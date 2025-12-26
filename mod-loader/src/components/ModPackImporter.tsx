@@ -59,12 +59,12 @@ export default function ModPackImporter() {
 
   async function handleApply() {
     if (!modPack) return;
-
-    // Create abort controller for cancellation
-    abortControllerRef.current = new AbortController();
     
     try {
-      startApplication(modPack);
+      // Create abort controller before starting application
+      abortControllerRef.current = new AbortController();
+      startApplication(modPack, abortControllerRef.current);
+      
       const settings = await getSettings();
       const modsPath = settings.mods_path || await invoke<string>("get_vintage_story_path");
       

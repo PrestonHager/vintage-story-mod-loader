@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import type { Mod } from "../types/mod";
+import type { Mod, ModStatus } from "../types/mod";
 import { getSettings } from "../services/storage";
 import { useToast } from "./Toast";
 
@@ -222,12 +222,12 @@ export default function ModList() {
                     )}
                     {hasMissingDeps && (
                       <p style={{ marginTop: "0.5rem", color: "#e74c3c", fontSize: "0.875rem" }}>
-                        Missing dependencies: {status!.missingDependencies.map(d => d.modid).join(", ")}
+                        Missing dependencies: {status!.missingDependencies.map((d: { modid: string }) => d.modid).join(", ")}
                       </p>
                     )}
                     {hasOutdatedDeps && (
                       <p style={{ marginTop: "0.5rem", color: "#f39c12", fontSize: "0.875rem" }}>
-                        Outdated dependencies: {status!.outdatedDependencies.map(d => `${d.modid} (${d.installed} → ${d.required})`).join(", ")}
+                        Outdated dependencies: {status!.outdatedDependencies.map((d: { modid: string; installed: string; required: string }) => `${d.modid} (${d.installed} → ${d.required})`).join(", ")}
                       </p>
                     )}
                   </div>

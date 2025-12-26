@@ -5,7 +5,7 @@ import { useToast } from "./Toast";
 export default function ModPackProgressBar() {
   const { progress, cancelApplication, minimizeProgressBar, closeProgressBar } = useModPackApplication();
   const { showToast } = useToast();
-  const [autoDismissTimer, setAutoDismissTimer] = useState<NodeJS.Timeout | null>(null);
+  const [autoDismissTimer, setAutoDismissTimer] = useState<number | null>(null);
 
   // Auto-dismiss after completion (1 second)
   useEffect(() => {

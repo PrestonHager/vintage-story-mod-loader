@@ -78,19 +78,19 @@ export default function ModPackImporter() {
           });
         },
         onSuccess: (modId) => {
-          updateProgress((prev) => ({
-            success: prev.success + 1,
-          }));
+          updateProgress({
+            success: progress.success + 1,
+          });
         },
         onFailed: (modId, error) => {
-          updateProgress((prev) => ({
-            failed: prev.failed + 1,
-          }));
+          updateProgress({
+            failed: progress.failed + 1,
+          });
         },
         onSkipped: (modId) => {
-          updateProgress((prev) => ({
-            skipped: prev.skipped + 1,
-          }));
+          updateProgress({
+            skipped: progress.skipped + 1,
+          });
         },
       });
 

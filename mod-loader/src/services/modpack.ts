@@ -150,6 +150,14 @@ export async function applyModPack(
     // Check for cancellation
     if (abortSignal?.aborted) {
       console.log("[applyModPack] Application cancelled by user");
+      // Count remaining mods as skipped
+      const remainingMods = pack.mods.length - i;
+      result.skipped += remainingMods;
+      onProgress?.(pack.mods.length, pack.mods.length, null);
+      // Update skipped count in progress
+      for (let j = 0; j < remainingMods; j++) {
+        onSkipped?.(pack.mods[i + j].id);
+      }
       break;
     }
 

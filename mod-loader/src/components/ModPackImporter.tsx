@@ -104,11 +104,17 @@ export default function ModPackImporter() {
         },
       });
 
+      // Update final progress with skipped count from result
+      updateProgress({
+        skipped: result.skipped,
+        isRunning: false,
+      });
+
       if (abortControllerRef.current.signal.aborted) {
-        showToast("Mod pack application cancelled", "warning");
-      } else if (result.success > 0 || result.failed === 0) {
+        // Don't show toast here - let the progress bar handle it
+      } else if (result.success > 0 && result.failed === 0) {
         showToast(`Mod pack applied successfully! ${result.success} mods processed.`, "success");
-      } else {
+      } else if (result.failed > 0) {
         showToast(`Mod pack partially applied. ${result.success} succeeded, ${result.failed} failed.`, "warning", 8000);
       }
     } catch (error) {

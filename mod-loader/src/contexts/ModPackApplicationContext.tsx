@@ -11,6 +11,8 @@ export interface ModPackApplicationProgress {
   failed: number;
   skipped: number;
   cancelled: boolean;
+  minimized: boolean;
+  closed: boolean;
 }
 
 interface ModPackApplicationContextType {
@@ -18,6 +20,8 @@ interface ModPackApplicationContextType {
   startApplication: (modPack: ModPack, abortController: AbortController) => void;
   updateProgress: (update: Partial<ModPackApplicationProgress>) => void;
   cancelApplication: () => void;
+  minimizeProgressBar: () => void;
+  closeProgressBar: () => void;
   reset: () => void;
   getAbortController: () => AbortController | null;
 }
@@ -43,6 +47,8 @@ export function ModPackApplicationProvider({ children }: { children: ReactNode }
     failed: 0,
     skipped: 0,
     cancelled: false,
+    minimized: false,
+    closed: false,
   });
   
   const abortControllerRef = React.useRef<AbortController | null>(null);
@@ -59,6 +65,8 @@ export function ModPackApplicationProvider({ children }: { children: ReactNode }
       failed: 0,
       skipped: 0,
       cancelled: false,
+      minimized: false,
+      closed: false,
     });
   }, []);
 
@@ -78,6 +86,20 @@ export function ModPackApplicationProvider({ children }: { children: ReactNode }
       isRunning: false,
     }));
   }, []);
+
+  const minimizeProgressBar = useCallback(() => {
+    setProgress((prev) => ({
+      ...prev,
+      minimized: !prev.minimized,
+    }));
+  }, []);
+
+  const closeProgressBar = useCallback(() => {
+    setProgress((prev) => ({
+      ...prev,
+      closed: true,
+    }));
+  }, []);
   
   const getAbortController = useCallback(() => {
     return abortControllerRef.current;
@@ -95,6 +117,8 @@ export function ModPackApplicationProvider({ children }: { children: ReactNode }
       failed: 0,
       skipped: 0,
       cancelled: false,
+      minimized: false,
+      closed: false,
     });
   }, []);
 
@@ -105,6 +129,8 @@ export function ModPackApplicationProvider({ children }: { children: ReactNode }
         startApplication,
         updateProgress,
         cancelApplication,
+        minimizeProgressBar,
+        closeProgressBar,
         reset,
         getAbortController,
       }}

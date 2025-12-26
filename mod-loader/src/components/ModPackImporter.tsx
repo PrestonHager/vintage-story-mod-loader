@@ -24,18 +24,29 @@ export default function ModPackImporter() {
       
       console.log("[Frontend] importModPack() returned:", pack);
       
-      if (pack) {
-        console.log("[Frontend] Mod pack received:", {
-          name: pack.name,
-          version: pack.version,
-          modsCount: pack.mods.length
-        });
-        setModPack(pack);
-        showToast(`Successfully imported mod pack: ${pack.name}`, "success");
-      } else {
-        // User cancelled - no need to show error
-        console.log("[Frontend] Import cancelled by user");
-      }
+              if (pack) {
+                console.log("[Frontend] Mod pack received:", {
+                  name: pack.name,
+                  version: pack.version,
+                  modsCount: pack.mods.length
+                });
+                
+                // Save the imported pack to the packs directory
+                try {
+                  const packPath = await invoke<string>("save_mod_pack_to_packs_dir", { pack });
+                  console.log("[Frontend] Mod pack saved to:", packPath);
+                  showToast(`Successfully imported and saved mod pack: ${pack.name}`, "success");
+                } catch (error) {
+                  console.error("[Frontend] Failed to save mod pack:", error);
+                  const errorMessage = error instanceof Error ? error.message : String(error);
+                  showToast(`Imported mod pack but failed to save: ${errorMessage}`, "warning", 6000);
+                }
+                
+                setModPack(pack);
+              } else {
+                // User cancelled - no need to show error
+                console.log("[Frontend] Import cancelled by user");
+              }
     } catch (error) {
       console.error("[Frontend] Failed to import mod pack:", error);
       console.error("[Frontend] Error details:", {

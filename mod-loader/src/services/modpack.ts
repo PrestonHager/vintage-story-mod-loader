@@ -45,7 +45,9 @@ export async function importModPack(): Promise<ModPack | null> {
       path = filePath;
     } else if (Array.isArray(filePath)) {
       console.log("[modpack.ts] File path is an array, using first element:", filePath[0]);
-      path = filePath.length > 0 ? filePath[0] : null;
+      if (filePath.length > 0 && typeof filePath[0] === "string") {
+        path = filePath[0];
+      }
     } else if (filePath === null || filePath === undefined) {
       // User cancelled
       console.log("[modpack.ts] User cancelled file selection");

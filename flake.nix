@@ -142,11 +142,12 @@
             echo "Node: $(node --version)"
             echo "npm: $(npm --version)"
             echo ""
-            echo "Available commands:"
-            echo "  nix develop -c npm run dev    - Start development server"
-            echo "  nix develop -c npm run build   - Build the application"
-            echo "  nix develop -c cargo test      - Run Rust tests"
-            echo "  nix develop -c npm run test:e2e - Run E2E tests"
+            echo "In the mod-loader directory:"
+            echo "  npm run tauri dev              - Start the application"
+            echo "  npm run tauri build            - Build the application"
+            echo "  npm run test:e2e - Run E2E tests"
+            echo "In the mod-loader/src-tauri directory:"
+            echo "  cargo test                     - Run Rust tests"
             echo ""
             export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath [
               pkgs.webkitgtk

@@ -18,7 +18,8 @@ const TestComponent = () => {
 
 describe('Toast', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    // Use real timers for Toast tests as they test UI behavior
+    vi.useRealTimers();
   });
 
   afterEach(() => {
@@ -34,9 +35,7 @@ describe('Toast', () => {
       );
 
       const button = screen.getByText('Show Success');
-      act(() => {
-        button.click();
-      });
+      fireEvent.click(button);
 
       await waitFor(() => {
         expect(screen.getByText('Success message')).toBeInTheDocument();
@@ -51,9 +50,7 @@ describe('Toast', () => {
       );
 
       const button = screen.getByText('Show Error');
-      act(() => {
-        button.click();
-      });
+      fireEvent.click(button);
 
       await waitFor(() => {
         expect(screen.getByText('Error message')).toBeInTheDocument();
@@ -68,9 +65,7 @@ describe('Toast', () => {
       );
 
       const button = screen.getByText('Show Warning');
-      act(() => {
-        button.click();
-      });
+      fireEvent.click(button);
 
       await waitFor(() => {
         expect(screen.getByText('Warning message')).toBeInTheDocument();
@@ -85,9 +80,7 @@ describe('Toast', () => {
       );
 
       const button = screen.getByText('Show Info');
-      act(() => {
-        button.click();
-      });
+      fireEvent.click(button);
 
       await waitFor(() => {
         expect(screen.getByText('Info message')).toBeInTheDocument();
@@ -102,17 +95,14 @@ describe('Toast', () => {
       );
 
       const button = screen.getByText('Show Custom Duration');
-      act(() => {
-        button.click();
-      });
+      fireEvent.click(button);
 
       await waitFor(() => {
         expect(screen.getByText('Custom duration')).toBeInTheDocument();
       });
 
-      act(() => {
-        vi.advanceTimersByTime(1000);
-      });
+      // Wait for the duration to pass (1000ms)
+      await new Promise(resolve => setTimeout(resolve, 1100));
 
       await waitFor(() => {
         expect(screen.queryByText('Custom duration')).not.toBeInTheDocument();
@@ -127,18 +117,14 @@ describe('Toast', () => {
       );
 
       const button = screen.getByText('Show Success');
-      act(() => {
-        button.click();
-      });
+      fireEvent.click(button);
 
       await waitFor(() => {
         expect(screen.getByText('Success message')).toBeInTheDocument();
       });
 
       const closeButton = screen.getByText('×');
-      act(() => {
-        closeButton.click();
-      });
+      fireEvent.click(closeButton);
 
       await waitFor(() => {
         expect(screen.queryByText('Success message')).not.toBeInTheDocument();
@@ -152,11 +138,9 @@ describe('Toast', () => {
         </ToastProvider>
       );
 
-      act(() => {
-        screen.getByText('Show Success').click();
-        screen.getByText('Show Error').click();
-        screen.getByText('Show Warning').click();
-      });
+      fireEvent.click(screen.getByText('Show Success'));
+      fireEvent.click(screen.getByText('Show Error'));
+      fireEvent.click(screen.getByText('Show Warning'));
 
       await waitFor(() => {
         expect(screen.getByText('Success message')).toBeInTheDocument();
@@ -168,18 +152,13 @@ describe('Toast', () => {
 
   describe('Toast Queue Management', () => {
     it('should remove toast when closed', async () => {
-      // Use real timers for this test to avoid timing issues
-      vi.useRealTimers();
-      
       render(
         <ToastProvider>
           <TestComponent />
         </ToastProvider>
       );
 
-      act(() => {
-        screen.getByText('Show Success').click();
-      });
+      fireEvent.click(screen.getByText('Show Success'));
 
       await waitFor(() => {
         expect(screen.getByText('Success message')).toBeInTheDocument();
@@ -194,10 +173,7 @@ describe('Toast', () => {
       // Wait for the toast to be removed
       await waitFor(() => {
         expect(screen.queryByText('Success message')).not.toBeInTheDocument();
-      }, { timeout: 1000 });
-      
-      // Restore fake timers
-      vi.useFakeTimers();
+      });
     });
 
     it('should handle multiple toasts with different durations', async () => {
@@ -207,31 +183,21 @@ describe('Toast', () => {
         </ToastProvider>
       );
 
-      act(() => {
-        screen.getByText('Show Custom Duration').click();
-        screen.getByText('Show Success').click();
-      });
+      fireEvent.click(screen.getByText('Show Custom Duration'));
+      fireEvent.click(screen.getByText('Show Success'));
 
       await waitFor(() => {
         expect(screen.getByText('Custom duration')).toBeInTheDocument();
         expect(screen.getByText('Success message')).toBeInTheDocument();
       });
 
-      // Advance timers to trigger auto-dismissal
-      act(() => {
-        vi.advanceTimersByTime(1000);
-      });
-
-      // Wait for React to process the state update
-      await act(async () => {
-        // Flush promises
-        await Promise.resolve();
-      });
+      // Wait for the custom duration toast to auto-dismiss (1000ms)
+      await new Promise(resolve => setTimeout(resolve, 1100));
 
       await waitFor(() => {
         expect(screen.queryByText('Custom duration')).not.toBeInTheDocument();
         expect(screen.getByText('Success message')).toBeInTheDocument();
-      }, { timeout: 2000 });
+      });
     });
   });
 });

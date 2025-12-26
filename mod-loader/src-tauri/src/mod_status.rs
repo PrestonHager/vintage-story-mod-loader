@@ -104,14 +104,7 @@ fn compare_versions(installed: &str, required: &str) -> bool {
     installed == required || installed >= required
 }
 
-#[command]
-pub async fn check_mod_status(mod_id: String, mods_path: String) -> Result<ModStatus, String> {
-    use crate::mod_manager;
-    
-    let mod_list = mod_manager::get_mod_list(mods_path.clone(), Some(false))
-        .await
-        .map_err(|e| format!("Failed to load mod list: {}", e))?;
-    
+async fn check_mod_status_internal(mod_id: String, mods_path: String, mod_list: &[crate::mod_manager::Mod]) -> Result<ModStatus, String> {
     let mod_info = mod_list.iter()
         .find(|m| m.id == mod_id)
         .ok_or_else(|| format!("Mod {} not found", mod_id))?
@@ -191,6 +184,17 @@ pub async fn check_mod_status(mod_id: String, mods_path: String) -> Result<ModSt
 }
 
 #[command]
+pub async fn check_mod_status(mod_id: String, mods_path: String) -> Result<ModStatus, String> {
+    use crate::mod_manager;
+    
+    let mod_list = mod_manager::get_mod_list(mods_path.clone(), Some(false))
+        .await
+        .map_err(|e| format!("Failed to load mod list: {}", e))?;
+    
+    check_mod_status_internal(mod_id, mods_path, &mod_list).await
+}
+
+#[command]
 pub async fn check_all_mods_status(mods_path: String) -> Result<HashMap<String, ModStatus>, String> {
     use crate::mod_manager;
     
@@ -200,11 +204,11 @@ pub async fn check_all_mods_status(mods_path: String) -> Result<HashMap<String, 
     
     let mut results = HashMap::new();
     
-    for mod_item in mod_list {
+    for mod_item in &mod_list {
         if mod_item.info.is_some() {
-            match check_mod_status(mod_item.id.clone(), mods_path.clone()).await {
+            match check_mod_status_internal(mod_item.id.clone(), mods_path.clone(), &mod_list).await {
                 Ok(status) => {
-                    results.insert(mod_item.id, status);
+                    results.insert(mod_item.id.clone(), status);
                 }
                 Err(e) => {
                     eprintln!("Failed to check status for {}: {}", mod_item.id, e);

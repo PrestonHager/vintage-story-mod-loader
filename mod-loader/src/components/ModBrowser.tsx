@@ -101,12 +101,7 @@ export default function ModBrowser() {
                         {mod.tags.map(tag => (
                           <span
                             key={tag}
-                            style={{
-                              padding: "0.25rem 0.5rem",
-                              backgroundColor: "#ecf0f1",
-                              borderRadius: "4px",
-                              fontSize: "0.75rem",
-                            }}
+                            className="tag"
                           >
                             {tag}
                           </span>

@@ -146,3 +146,70 @@ select {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
+/* Tag styling for dark mode */
+.tag {
+  padding: 0.25rem 0.5rem;
+  background-color: #ecf0f1;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: #333;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+[data-theme="dark"] .tag,
+.theme-dark .tag {
+  background-color: #4a4a4a;
+  color: #e0e0e0;
+}
+
+/* Handle tags with inline styles - target spans with specific background colors */
+[data-theme="dark"] span[style*="background-color: #ecf0f1"],
+.theme-dark span[style*="background-color: #ecf0f1"] {
+  background-color: #4a4a4a !important;
+  color: #e0e0e0 !important;
+}
+
+/* ModPackEditor tags (blue background) - adjust for dark mode */
+[data-theme="dark"] span[style*="background-color: #3498db"],
+.theme-dark span[style*="background-color: #3498db"] {
+  background-color: #2980b9 !important;
+  color: white !important;
+}
+
+/* Select dropdown options styling */
+select option {
+  background-color: white;
+  color: #333;
+}
+
+[data-theme="dark"] select option,
+.theme-dark select option {
+  background-color: #3d3d3d;
+  color: #e0e0e0;
+}
+
+/* Small text styling for dark mode */
+small {
+  color: #666;
+  transition: color 0.3s;
+}
+
+[data-theme="dark"] small,
+.theme-dark small {
+  color: #999;
+}
+
+/* Label styling for dark mode */
+label {
+  color: #333;
+  transition: color 0.3s;
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+[data-theme="dark"] label,
+.theme-dark label {
+  color: #e0e0e0;
+}
+

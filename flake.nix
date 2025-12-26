@@ -113,6 +113,7 @@
             librsvg
             cargo-tauri
             # Testing tools
+            playwright
             playwright.browsers
           ];
 

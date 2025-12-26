@@ -88,7 +88,7 @@ mod tests {
 
     #[test]
     fn test_get_default_paths() {
-        let paths = get_default_paths();
+        let _paths = get_default_paths();
         // Should return at least one path if HOME/APPDATA is set
         // This test verifies the function doesn't panic
         // paths.len() is always >= 0 since usize is unsigned, so no assertion needed

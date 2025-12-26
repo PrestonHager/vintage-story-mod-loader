@@ -48,11 +48,16 @@
           gcc
           glibc
           webkitgtk
+          webkitgtk.dev
           gtk3
+          gtk3.dev
           libsoup
+          libsoup.dev
           glib
+          glib.dev
           glib-networking
           librsvg
+          librsvg.dev
           cargo-tauri
         ];
 
@@ -216,11 +221,11 @@
                 # Set up pkg-config environment variables for cargo
                 export OPENSSL_DIR="${pkgs.openssl.dev}"
                 export PKG_CONFIG_PATH="${pkgs.lib.makeSearchPath "lib/pkgconfig" [
-                  pkgs.openssl
-                  pkgs.glib
-                  pkgs.gtk3
-                  pkgs.webkitgtk
-                  pkgs.libsoup
+                  pkgs.openssl.dev
+                  pkgs.glib.dev
+                  pkgs.gtk3.dev
+                  pkgs.webkitgtk.dev
+                  pkgs.libsoup.dev
                 ]}"
                 
                 echo "=== Running Rust unit tests ==="
@@ -256,11 +261,11 @@
                 # Set up pkg-config environment variables for cargo
                 export OPENSSL_DIR="${pkgs.openssl.dev}"
                 export PKG_CONFIG_PATH="${pkgs.lib.makeSearchPath "lib/pkgconfig" [
-                  pkgs.openssl
-                  pkgs.glib
-                  pkgs.gtk3
-                  pkgs.webkitgtk
-                  pkgs.libsoup
+                  pkgs.openssl.dev
+                  pkgs.glib.dev
+                  pkgs.gtk3.dev
+                  pkgs.webkitgtk.dev
+                  pkgs.libsoup.dev
                 ]}"
                 
                 cd mod-loader/src-tauri

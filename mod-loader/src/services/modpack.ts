@@ -68,6 +68,12 @@ export async function importModPack(): Promise<ModPack | null> {
     
     const pack = await invoke<ModPack>("import_mod_pack", { filePath: path });
     
+    // Validate and normalize the mod pack structure
+    // Ensure mods array exists, defaulting to empty array if missing
+    if (!pack.mods || !Array.isArray(pack.mods)) {
+      pack.mods = [];
+    }
+    
     console.log("[modpack.ts] Backend returned mod pack:", {
       name: pack.name,
       version: pack.version,

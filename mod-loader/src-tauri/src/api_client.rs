@@ -1,6 +1,24 @@
 // API client for downloading mods directly
-// The mod database API is not reliable, so we scrape mod pages to get download URLs
+// We use the API endpoint /api/mod/<modid> to get download URLs from mod.releases[0].mainfile
 // Format: https://mods.vintagestory.at/download/<number>/<name>_<version>.zip
+
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+struct ModApiResponse {
+    #[serde(rename = "mod")]
+    mod_data: ModApiData,
+}
+
+#[derive(Debug, Deserialize)]
+struct ModApiData {
+    releases: Vec<ModRelease>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ModRelease {
+    mainfile: String, // This is the direct download URL
+}
 
 #[tauri::command]
 pub async fn get_mod_download_url(mod_id: String, mod_url: Option<String>) -> Result<String, String> {
@@ -11,108 +29,138 @@ pub async fn get_mod_download_url(mod_id: String, mod_url: Option<String>) -> Re
         .build()
         .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
     
-    // Try to construct the mod page URL
-    let page_url = if let Some(url) = mod_url {
-        // If it's an API URL, convert to page URL
-        // Handle both /api/mod/ (correct) and /api/mods/ (old format) for backwards compatibility
+    // Try to construct the API URL
+    let api_url = if let Some(url) = mod_url {
+        // If it's already an API URL, use it
         if url.contains("/api/mod/") {
-            let mod_id_from_url = url.split("/api/mod/").last().unwrap_or(&mod_id);
-            format!("https://mods.vintagestory.at/show/mod/{}", mod_id_from_url)
+            url
         } else if url.contains("/api/mods/") {
-            // Old format - still support it
+            // Old format - convert to new format
             let mod_id_from_url = url.split("/api/mods/").last().unwrap_or(&mod_id);
-            format!("https://mods.vintagestory.at/show/mod/{}", mod_id_from_url)
+            format!("https://mods.vintagestory.at/api/mod/{}", mod_id_from_url)
         } else if url.contains("/show/mod/") {
-            url
+            // Convert page URL to API URL
+            let mod_id_from_url = url.split("/show/mod/").last().unwrap_or(&mod_id);
+            format!("https://mods.vintagestory.at/api/mod/{}", mod_id_from_url)
         } else if url.contains("mods.vintagestory.at") {
-            url
+            // Try to extract mod ID from URL or use provided mod_id
+            format!("https://mods.vintagestory.at/api/mod/{}", mod_id)
         } else {
-            format!("https://mods.vintagestory.at/show/mod/{}", mod_id)
+            format!("https://mods.vintagestory.at/api/mod/{}", mod_id)
         }
     } else {
-        format!("https://mods.vintagestory.at/show/mod/{}", mod_id)
+        format!("https://mods.vintagestory.at/api/mod/{}", mod_id)
     };
     
-    eprintln!("[get_mod_download_url] Fetching mod page: {}", page_url);
+    eprintln!("[get_mod_download_url] Fetching mod API: {}", api_url);
     
-    let response = client
+    // Try API endpoint first
+    match client
+        .get(&api_url)
+        .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")
+        .send()
+        .await
+    {
+        Ok(response) => {
+            if response.status().is_success() {
+                match response.text().await {
+                    Ok(text) => {
+                        // Try to parse as JSON API response
+                        match serde_json::from_str::<ModApiResponse>(&text) {
+                            Ok(api_response) => {
+                                // Get the first (latest) release's mainfile URL
+                                if let Some(release) = api_response.mod_data.releases.first() {
+                                    let download_url = release.mainfile.clone();
+                                    eprintln!("[get_mod_download_url] Found download URL from API: {}", download_url);
+                                    return Ok(download_url);
+                                } else {
+                                    eprintln!("[get_mod_download_url] No releases found in API response");
+                                }
+                            }
+                            Err(e) => {
+                                eprintln!("[get_mod_download_url] Failed to parse API JSON: {}", e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("[get_mod_download_url] Failed to read API response: {}", e);
+                    }
+                }
+            } else {
+                eprintln!("[get_mod_download_url] API returned status: {}", response.status());
+            }
+        }
+        Err(e) => {
+            eprintln!("[get_mod_download_url] Failed to fetch API: {}", e);
+        }
+    }
+    
+    // Fallback: Try scraping the mod page HTML
+    let page_url = format!("https://mods.vintagestory.at/show/mod/{}", mod_id);
+    eprintln!("[get_mod_download_url] Falling back to scraping mod page: {}", page_url);
+    
+    match client
         .get(&page_url)
         .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")
         .send()
         .await
-        .map_err(|e| format!("Failed to fetch mod page: {}", e))?;
-    
-    if !response.status().is_success() {
-        return Err(format!("Failed to fetch mod page: {}", response.status()));
-    }
-    
-    let html = response.text().await
-        .map_err(|e| format!("Failed to read mod page: {}", e))?;
-    
-    // Look for download links in the HTML
-    // Pattern: /download/<number>/<filename>
-    // Try multiple patterns to catch different HTML structures
-    
-    // Pattern 1: Direct download link with number
-    let download_pattern = Regex::new(r#"/download/(\d+)/[^"'\s<>]+\.(zip|tar|tar\.gz)"#)
-        .map_err(|e| format!("Failed to create regex: {}", e))?;
-    
-    for cap in download_pattern.captures_iter(&html) {
-        if let Some(full_match) = cap.get(0) {
-            let path = full_match.as_str();
-            let download_url = if path.starts_with("http") {
-                path.to_string()
-            } else if path.starts_with("/") {
-                format!("https://mods.vintagestory.at{}", path)
-            } else {
-                format!("https://mods.vintagestory.at/{}", path)
-            };
-            eprintln!("[get_mod_download_url] Found download URL: {}", download_url);
-            return Ok(download_url);
-        }
-    }
-    
-    // Pattern 2: href attribute with download link
-    let href_pattern = Regex::new(r#"href=["']([^"']*download[^"']*\.(zip|tar|tar\.gz))"#)
-        .map_err(|e| format!("Failed to create href regex: {}", e))?;
-    
-    for cap in href_pattern.captures_iter(&html) {
-        if let Some(url_match) = cap.get(1) {
-            let mut url = url_match.as_str().to_string();
-            // Make absolute if relative
-            if url.starts_with("/") {
-                url = format!("https://mods.vintagestory.at{}", url);
-            } else if !url.starts_with("http") {
-                url = format!("https://mods.vintagestory.at/{}", url);
-            }
-            // Only return if it's a download URL
-            if url.contains("/download/") {
-                eprintln!("[get_mod_download_url] Found download URL (href): {}", url);
-                return Ok(url);
-            }
-        }
-    }
-    
-    // Pattern 3: Look for download button or link text
-    let button_pattern = Regex::new(r#"(?:download|Download)[^"']*href=["']([^"']+)"#)
-        .map_err(|e| format!("Failed to create button regex: {}", e))?;
-    
-    for cap in button_pattern.captures_iter(&html) {
-        if let Some(url_match) = cap.get(1) {
-            let mut url = url_match.as_str().to_string();
-            if url.contains("/download/") && (url.ends_with(".zip") || url.ends_with(".tar") || url.ends_with(".tar.gz")) {
-                if url.starts_with("/") {
-                    url = format!("https://mods.vintagestory.at{}", url);
-                } else if !url.starts_with("http") {
-                    url = format!("https://mods.vintagestory.at/{}", url);
+    {
+        Ok(response) => {
+            if response.status().is_success() {
+                match response.text().await {
+                    Ok(html) => {
+                        // Pattern 1: Direct download link with number
+                        let download_pattern = Regex::new(r#"/download/(\d+)/[^"'\s<>]+\.(zip|tar|tar\.gz)"#)
+                            .map_err(|e| format!("Failed to create regex: {}", e))?;
+                        
+                        for cap in download_pattern.captures_iter(&html) {
+                            if let Some(full_match) = cap.get(0) {
+                                let path = full_match.as_str();
+                                let download_url = if path.starts_with("http") {
+                                    path.to_string()
+                                } else if path.starts_with("/") {
+                                    format!("https://mods.vintagestory.at{}", path)
+                                } else {
+                                    format!("https://mods.vintagestory.at/{}", path)
+                                };
+                                eprintln!("[get_mod_download_url] Found download URL from HTML: {}", download_url);
+                                return Ok(download_url);
+                            }
+                        }
+                        
+                        // Pattern 2: href attribute with download link
+                        let href_pattern = Regex::new(r#"href=["']([^"']*download[^"']*\.(zip|tar|tar\.gz))"#)
+                            .map_err(|e| format!("Failed to create href regex: {}", e))?;
+                        
+                        for cap in href_pattern.captures_iter(&html) {
+                            if let Some(url_match) = cap.get(1) {
+                                let mut url = url_match.as_str().to_string();
+                                if url.starts_with("/") {
+                                    url = format!("https://mods.vintagestory.at{}", url);
+                                } else if !url.starts_with("http") {
+                                    url = format!("https://mods.vintagestory.at/{}", url);
+                                }
+                                if url.contains("/download/") {
+                                    eprintln!("[get_mod_download_url] Found download URL from HTML (href): {}", url);
+                                    return Ok(url);
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("[get_mod_download_url] Failed to read HTML: {}", e);
+                    }
                 }
-                eprintln!("[get_mod_download_url] Found download URL (button): {}", url);
-                return Ok(url);
+            } else {
+                eprintln!("[get_mod_download_url] Page returned status: {}", response.status());
             }
+        }
+        Err(e) => {
+            eprintln!("[get_mod_download_url] Failed to fetch page: {}", e);
         }
     }
     
-    Err(format!("Could not find download URL on mod page for {}", mod_id))
+    Err(format!("Could not find download URL for {}", mod_id))
 }
 
 #[tauri::command]

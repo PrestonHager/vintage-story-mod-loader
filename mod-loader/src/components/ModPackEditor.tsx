@@ -1,26 +1,54 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { getSettings } from "../services/storage";
 import type { ModPack } from "../types/mod";
 
+const MOD_PACK_EDITOR_STORAGE_KEY = "vs-mod-loader-mod-pack-editor";
+
 export default function ModPackEditor() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [modPack, setModPack] = useState<ModPack>(location.state?.modPack || {
-    name: "",
-    version: "1.0.0",
-    description: "",
-    mods: [],
-    metadata: {
-      category: "Game Mod",
-      tags: [],
-      status: "Draft",
-      side: "Client and Server side mod",
-    },
-  });
+  
+  // Load from location state, localStorage, or default
+  const loadInitialModPack = (): ModPack => {
+    if (location.state?.modPack) {
+      return location.state.modPack;
+    }
+    const stored = localStorage.getItem(MOD_PACK_EDITOR_STORAGE_KEY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        console.error("Failed to parse stored mod pack:", e);
+      }
+    }
+    return {
+      name: "",
+      version: "1.0.0",
+      description: "",
+      mods: [],
+      metadata: {
+        category: "Game Mod",
+        tags: [],
+        status: "Draft",
+        side: "Client and Server side mod",
+      },
+    };
+  };
 
+  const [modPack, setModPack] = useState<ModPack>(loadInitialModPack());
   const [images, setImages] = useState<string[]>(modPack.metadata.screenshots || []);
+
+  // Save to localStorage whenever modPack changes
+  useEffect(() => {
+    localStorage.setItem(MOD_PACK_EDITOR_STORAGE_KEY, JSON.stringify(modPack));
+  }, [modPack]);
+
+  // Update images when modPack metadata changes
+  useEffect(() => {
+    setImages(modPack.metadata.screenshots || []);
+  }, [modPack.metadata.screenshots]);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,12 +57,14 @@ export default function ModPackEditor() {
       setSubmitting(true);
       const settings = await getSettings();
       const response = await invoke<any>("submit_mod_pack", {
-        mod_pack: modPack,
+        modPack: modPack,
         username: settings.api_username,
         password: settings.api_password,
       });
 
       if (response.success) {
+        // Clear stored mod pack on successful submission
+        localStorage.removeItem(MOD_PACK_EDITOR_STORAGE_KEY);
         alert(response.message || "Mod pack submitted successfully!");
         navigate("/packs");
       } else {

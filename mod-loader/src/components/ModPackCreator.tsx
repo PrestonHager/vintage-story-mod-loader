@@ -5,21 +5,60 @@ import type { Mod, ModPack } from "../types/mod";
 import { getSettings } from "../services/storage";
 import { exportModPack } from "../services/modpack";
 
+const MOD_PACK_CREATOR_STORAGE_KEY = "vs-mod-loader-mod-pack-creator";
+
 export default function ModPackCreator() {
   const navigate = useNavigate();
   const [mods, setMods] = useState<Mod[]>([]);
-  const [selectedMods, setSelectedMods] = useState<Set<string>>(new Set());
-  const [modPack, setModPack] = useState<Partial<ModPack>>({
-    name: "",
-    version: "1.0.0",
-    description: "",
-    mods: [],
-    metadata: {},
-  });
+  
+  // Load from localStorage or default
+  const loadInitialModPack = (): Partial<ModPack> => {
+    const stored = localStorage.getItem(MOD_PACK_CREATOR_STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        return parsed;
+      } catch (e) {
+        console.error("Failed to parse stored mod pack:", e);
+      }
+    }
+    return {
+      name: "",
+      version: "1.0.0",
+      description: "",
+      mods: [],
+      metadata: {},
+    };
+  };
+
+  const [modPack, setModPack] = useState<Partial<ModPack>>(loadInitialModPack());
+  
+  // Load selected mods from stored modPack
+  const loadInitialSelectedMods = (): Set<string> => {
+    const stored = localStorage.getItem(MOD_PACK_CREATOR_STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed.mods && Array.isArray(parsed.mods)) {
+          return new Set(parsed.mods.map((m: { id: string }) => m.id));
+        }
+      } catch (e) {
+        console.error("Failed to parse stored mod pack:", e);
+      }
+    }
+    return new Set();
+  };
+
+  const [selectedMods, setSelectedMods] = useState<Set<string>>(loadInitialSelectedMods());
 
   useEffect(() => {
     loadMods();
   }, []);
+
+  // Save to localStorage whenever modPack changes
+  useEffect(() => {
+    localStorage.setItem(MOD_PACK_CREATOR_STORAGE_KEY, JSON.stringify(modPack));
+  }, [modPack]);
 
   async function loadMods() {
     try {
@@ -71,6 +110,8 @@ export default function ModPackCreator() {
 
   function handleNext() {
     // Navigate to editor with mod pack data
+    // Clear creator storage since we're moving to editor
+    localStorage.removeItem(MOD_PACK_CREATOR_STORAGE_KEY);
     navigate("/packs/edit", { state: { modPack } });
   }
 

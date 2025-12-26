@@ -183,91 +183,130 @@
           # Run all tests
           test = {
             type = "app";
-            program = "${pkgs.writeShellScriptBin "test-all" ''
-              set -e
-              echo "Running all tests..."
-              echo ""
-              
-              echo "=== Running Rust unit tests ==="
-              cd mod-loader/src-tauri
-              cargo test --workspace || exit 1
-              cd ../..
-              
-              echo ""
-              echo "=== Running E2E tests ==="
-              cd mod-loader
-              export PLAYWRIGHT_BROWSERS_PATH=${pkgs.playwright.browsers}
-              npm install
-              npx playwright install --with-deps || true
-              npm run test:e2e || exit 1
-              cd ..
-              
-              echo ""
-              echo "All tests passed!"
-            ''}/bin/test-all";
+            program = "${pkgs.writeShellApplication {
+              name = "test-all";
+              runtimeInputs = with pkgs; [
+                rustToolchain
+                nodejs
+                pkg-config
+                openssl
+                playwright
+                playwright.browsers
+              ];
+              text = ''
+                set -e
+                echo "Running all tests..."
+                echo ""
+                
+                echo "=== Running Rust unit tests ==="
+                cd mod-loader/src-tauri
+                cargo test --workspace || exit 1
+                cd ../..
+                
+                echo ""
+                echo "=== Running E2E tests ==="
+                cd mod-loader
+                export PLAYWRIGHT_BROWSERS_PATH=${pkgs.playwright.browsers}
+                npm install
+                npx playwright install --with-deps || true
+                npm run test:e2e || exit 1
+                cd ..
+                
+                echo ""
+                echo "All tests passed!"
+              '';
+            }}/bin/test-all";
           };
 
           # Run Rust unit tests only
           "test:rust" = {
             type = "app";
-            program = "${pkgs.writeShellScriptBin "test-rust" ''
-              set -e
-              echo "Running Rust unit tests..."
-              cd mod-loader/src-tauri
-              cargo test --workspace
-            ''}/bin/test-rust";
+            program = "${pkgs.writeShellApplication {
+              name = "test-rust";
+              runtimeInputs = with pkgs; [
+                rustToolchain
+                pkg-config
+                openssl
+              ];
+              text = ''
+                set -e
+                echo "Running Rust unit tests..."
+                cd mod-loader/src-tauri
+                cargo test --workspace
+              '';
+            }}/bin/test-rust";
           };
 
           # Run E2E tests only
           "test:e2e" = {
             type = "app";
-            program = "${pkgs.writeShellScriptBin "test-e2e" ''
-              set -e
-              echo "Running E2E tests..."
-              cd mod-loader
-              export PLAYWRIGHT_BROWSERS_PATH=${pkgs.playwright.browsers}
-              npm install
-              npx playwright install --with-deps || true
-              npm run test:e2e
-            ''}/bin/test-e2e";
+            program = "${pkgs.writeShellApplication {
+              name = "test-e2e";
+              runtimeInputs = with pkgs; [
+                nodejs
+                playwright
+                playwright.browsers
+              ];
+              text = ''
+                set -e
+                echo "Running E2E tests..."
+                cd mod-loader
+                export PLAYWRIGHT_BROWSERS_PATH=${pkgs.playwright.browsers}
+                npm install
+                npx playwright install --with-deps || true
+                npm run test:e2e
+              '';
+            }}/bin/test-e2e";
           };
 
           # Run integration tests (if they exist)
           "test:integration" = {
             type = "app";
-            program = "${pkgs.writeShellScriptBin "test-integration" ''
-              set -e
-              echo "Running integration tests..."
-              if [ -d "mod-loader/tests/integration" ] && [ "$(ls -A mod-loader/tests/integration)" ]; then
-                cd mod-loader
-                npm install
-                # Add integration test command here when implemented
-                echo "Integration tests not yet implemented"
-                exit 0
-              else
-                echo "No integration tests found"
-                exit 0
-              fi
-            ''}/bin/test-integration";
+            program = "${pkgs.writeShellApplication {
+              name = "test-integration";
+              runtimeInputs = with pkgs; [
+                nodejs
+              ];
+              text = ''
+                set -e
+                echo "Running integration tests..."
+                if [ -d "mod-loader/tests/integration" ] && [ "$(ls -A mod-loader/tests/integration)" ]; then
+                  cd mod-loader
+                  npm install
+                  # Add integration test command here when implemented
+                  echo "Integration tests not yet implemented"
+                  exit 0
+                else
+                  echo "No integration tests found"
+                  exit 0
+                fi
+              '';
+            }}/bin/test-integration";
           };
 
           # Run TypeScript unit tests (if they exist)
           "test:unit" = {
             type = "app";
-            program = "${pkgs.writeShellScriptBin "test-unit" ''
-              set -e
-              echo "Running TypeScript unit tests..."
-              if [ -d "mod-loader/tests/unit" ] && [ "$(ls -A mod-loader/tests/unit)" ]; then
-                cd mod-loader
-                npm install
-                # Add unit test command here when implemented
-                echo "TypeScript unit tests not yet implemented"
-                exit 0
-              else
-                echo "No TypeScript unit tests found"
-                exit 0
-              fi
-            ''}/bin/test-unit";
+            program = "${pkgs.writeShellApplication {
+              name = "test-unit";
+              runtimeInputs = with pkgs; [
+                nodejs
+              ];
+              text = ''
+                set -e
+                echo "Running TypeScript unit tests..."
+                if [ -d "mod-loader/tests/unit" ] && [ "$(ls -A mod-loader/tests/unit)" ]; then
+                  cd mod-loader
+                  npm install
+                  # Add unit test command here when implemented
+                  echo "TypeScript unit tests not yet implemented"
+                  exit 0
+                else
+                  echo "No TypeScript unit tests found"
+                  exit 0
+                fi
+              '';
+            }}/bin/test-unit";
           };
         };
       }

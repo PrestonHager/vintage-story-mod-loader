@@ -97,18 +97,47 @@ export async function applyModPack(pack: ModPack, modsPath: string): Promise<voi
       const isInstalled = modList.some(m => m.id === modPackMod.id);
 
       if (!isInstalled) {
-        // Download mod
-        const modDetails = await getModDetails(modPackMod.id);
-        if (modDetails.download_url) {
-          await downloadMod(modPackMod.id, modDetails.download_url, modsPath);
+        // Try to use URL from mod pack first, otherwise search the database
+        let downloadUrl: string | undefined = modPackMod.url;
+        
+        // If URL is a page URL (not a direct download), fetch the download URL from API
+        if (downloadUrl && (downloadUrl.includes('/show/mod/') || downloadUrl.includes('mods.vintagestory.at') && !downloadUrl.includes('/download/'))) {
+          console.log(`[applyModPack] URL appears to be a page URL, fetching download URL from API for ${modPackMod.id}...`);
+          try {
+            const modDetails = await getModDetails(modPackMod.id);
+            downloadUrl = modDetails.download_url || undefined;
+          } catch (error) {
+            console.warn(`[applyModPack] Failed to get mod details for ${modPackMod.id}:`, error);
+            downloadUrl = undefined;
+          }
         }
+        
+        if (!downloadUrl) {
+          console.log(`[applyModPack] No URL in mod pack for ${modPackMod.id}, searching database...`);
+          try {
+            const modDetails = await getModDetails(modPackMod.id);
+            downloadUrl = modDetails.download_url || undefined;
+          } catch (error) {
+            console.warn(`[applyModPack] Failed to get mod details for ${modPackMod.id}:`, error);
+          }
+        }
+
+        if (downloadUrl) {
+          console.log(`[applyModPack] Downloading ${modPackMod.id} from ${downloadUrl}`);
+          await downloadMod(modPackMod.id, downloadUrl, modsPath);
+        } else {
+          console.warn(`[applyModPack] No download URL available for ${modPackMod.id}, skipping download`);
+        }
+      } else {
+        console.log(`[applyModPack] Mod ${modPackMod.id} is already installed`);
       }
 
       // Enable mod
       await invoke("enable_mods", { modsPath, modIds: [modPackMod.id] });
     } catch (error) {
       console.error(`Failed to process mod ${modPackMod.id}:`, error);
-      throw error;
+      // Continue with other mods instead of throwing
+      console.warn(`Continuing with other mods...`);
     }
   }
 }

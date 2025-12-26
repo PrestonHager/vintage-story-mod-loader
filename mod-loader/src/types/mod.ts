@@ -43,6 +43,7 @@ export interface ModSearchResult {
 export interface ModPackMod {
   id: string;
   version: string;
+  url?: string; // Optional URL to download the mod directly
 }
 
 export interface ModPackLinks {

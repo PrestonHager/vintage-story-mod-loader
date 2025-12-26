@@ -128,44 +128,17 @@ pub async fn import_mod_pack(file_path: String) -> Result<ModPack, String> {
         return Err(err);
     }
     
-    eprintln!("[import_mod_pack] Attempting to read file...");
-    match std::fs::read_to_string(path) {
-        Ok(content) => {
-            eprintln!("[import_mod_pack] File read successfully, size: {} bytes", content.len());
-            eprintln!("[import_mod_pack] First 200 chars of content: {}", &content.chars().take(200).collect::<String>());
-            
-            eprintln!("[import_mod_pack] Attempting to parse JSON...");
-            match serde_json::from_str::<ModPack>(&content) {
-                Ok(pack) => {
-                    eprintln!("[import_mod_pack] JSON parsed successfully");
-                    eprintln!("[import_mod_pack] Mod pack name: {}", pack.name);
-                    eprintln!("[import_mod_pack] Mod pack version: {}", pack.version);
-                    eprintln!("[import_mod_pack] Number of mods: {}", pack.mods.len());
-                    
-                    eprintln!("[import_mod_pack] Validating mod pack...");
-                    match pack.validate(false) {
-                        Ok(_) => {
-                            eprintln!("[import_mod_pack] Validation passed");
-                            eprintln!("[import_mod_pack] Import successful!");
-                            Ok(pack)
-                        }
-                        Err(e) => {
-                            let err = format!("Validation failed: {}", e);
-                            eprintln!("[import_mod_pack] ERROR: {}", err);
-                            Err(err)
-                        }
-                    }
-                }
-                Err(e) => {
-                    let err = format!("Failed to parse JSON: {}", e);
-                    eprintln!("[import_mod_pack] ERROR: {}", err);
-                    eprintln!("[import_mod_pack] JSON error details: {:?}", e);
-                    Err(err)
-                }
-            }
+    eprintln!("[import_mod_pack] Attempting to import mod pack from file...");
+    match ModPack::from_file(path) {
+        Ok(pack) => {
+            eprintln!("[import_mod_pack] Mod pack imported successfully");
+            eprintln!("[import_mod_pack] Mod pack name: {}", pack.name);
+            eprintln!("[import_mod_pack] Mod pack version: {}", pack.version);
+            eprintln!("[import_mod_pack] Number of mods: {}", pack.mods.len());
+            Ok(pack)
         }
         Err(e) => {
-            let err = format!("Failed to read file: {}", e);
+            let err = format!("Failed to import mod pack: {}", e);
             eprintln!("[import_mod_pack] ERROR: {}", err);
             Err(err)
         }

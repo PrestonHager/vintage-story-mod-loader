@@ -6,7 +6,6 @@
 // API docs: http://mods.vintagestory.at/api
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 #[derive(Debug, Deserialize)]
 struct ModApiResponse {
@@ -21,7 +20,7 @@ struct ModApiData {
     releases: Vec<ModRelease>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct ModRelease {
     mainfile: String, // Full URI to download file - always respect full URIs returned by API
 }

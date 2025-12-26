@@ -256,6 +256,7 @@ npm run test:e2e
 ### Running in Development Mode
 
 1. **Enter the development environment:**
+
    ```bash
    # If using Nix
    nix develop
@@ -265,15 +266,17 @@ npm run test:e2e
    ```
 
 2. **Install dependencies (if not already done):**
+
    ```bash
    npm install
    ```
 
 3. **Start the development server:**
+
    ```bash
    npm run tauri dev
    ```
-   
+
    This will:
    - Start the Vite dev server on `http://localhost:1420`
    - Build and launch the Tauri application window

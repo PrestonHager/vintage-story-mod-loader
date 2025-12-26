@@ -35,10 +35,15 @@ See the [Designer Guide](/designer-guide) for detailed instructions.
 
 - **Cross-platform**: Works on Windows, macOS, and Linux
 - **Batch Operations**: Enable or disable multiple mods at once
-- **Mod Pack Support**: Create, import, and apply mod packs
-- **Configuration Editor**: Edit mod config files with syntax highlighting
+- **Mod Pack Support**: Create, import, and apply mod packs with automatic mod downloading
+- **Mod Status Checks**: Automatically check for mod updates and missing dependencies
+- **Dependency Management**: Install missing dependencies with one click
+- **Mod Updates**: Update mods to the latest versions automatically
 - **Auto-detection**: Automatically finds your Vintage Story installation
 - **Integration**: Seamlessly integrates with the Vintage Story mod database
+- **Mod Indexing**: Fast mod discovery using file hash-based indexing
+- **Progress Tracking**: Real-time progress bars for mod pack application
+- **Cancellation Support**: Cancel long-running operations at any time
 
 ## Getting Help
 

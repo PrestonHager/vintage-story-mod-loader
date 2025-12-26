@@ -6,6 +6,8 @@ on:
     paths:
       - 'docs/**'
       - '.github/workflows/deploy-docs.yml'
+      - 'examples/**'
+  workflow_dispatch:  # Allow manual triggering
 
 permissions:
   contents: read

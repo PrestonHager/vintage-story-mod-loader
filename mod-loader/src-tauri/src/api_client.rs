@@ -1,7 +1,34 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use serde_json::Value;
 
 const MOD_DB_BASE_URL: &str = "https://mods.vintagestory.at";
+
+// Structure for API response from /api/mods/{mod_id}
+#[derive(Debug, Deserialize)]
+struct ModApiResponse {
+    #[serde(rename = "mod")]
+    mod_data: Option<ModApiData>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ModApiData {
+    releases: Option<Vec<ModRelease>>,
+    name: Option<String>,
+    description: Option<String>,
+    #[serde(rename = "author")]
+    author_name: Option<String>,
+    version: Option<String>,
+    thumbnail: Option<String>,
+    category: Option<String>,
+    tags: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ModRelease {
+    mainfile: Option<String>,
+    version: Option<String>,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(default)]
@@ -134,20 +161,68 @@ pub async fn get_mod_details(mod_id: String) -> Result<ModDatabaseMod, String> {
     match client.get(&url).send().await {
         Ok(response) => {
             if response.status().is_success() {
+                // Try to parse as the actual API response structure first
+                match response.json::<ModApiResponse>().await {
+                    Ok(api_response) => {
+                        if let Some(mod_data) = api_response.mod_data {
+                            // Extract download URL from the latest release
+                            let download_url = mod_data.releases
+                                .as_ref()
+                                .and_then(|releases| {
+                                    // Get the first (latest) release's mainfile URL
+                                    releases.first()
+                                        .and_then(|release| release.mainfile.clone())
+                                });
+
+                            // Extract version from latest release or mod data
+                            let version = mod_data.releases
+                                .as_ref()
+                                .and_then(|releases| {
+                                    releases.first()
+                                        .and_then(|release| release.version.clone())
+                                })
+                                .or(mod_data.version)
+                                .unwrap_or_else(|| "unknown".to_string());
+
+                            eprintln!("[get_mod_details] Found mod: {}, download_url: {:?}", mod_id, download_url);
+
+                            return Ok(ModDatabaseMod {
+                                id: mod_id.clone(),
+                                name: mod_data.name.unwrap_or_else(|| mod_id.clone()),
+                                version,
+                                description: mod_data.description,
+                                author: mod_data.author_name,
+                                download_url,
+                                thumbnail_url: mod_data.thumbnail,
+                                category: mod_data.category,
+                                tags: mod_data.tags.unwrap_or_default(),
+                            });
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("[get_mod_details] Failed to parse as ModApiResponse: {}", e);
+                        // Fall through to try parsing as ModDatabaseMod directly
+                    }
+                }
+
+                // Fallback: try parsing as ModDatabaseMod directly (for other API formats)
                 match response.json::<ModDatabaseMod>().await {
                     Ok(mod_data) => return Ok(mod_data),
                     Err(e) => {
-                        eprintln!("Failed to parse mod details: {}", e);
+                        eprintln!("[get_mod_details] Failed to parse mod details: {}", e);
                     }
                 }
+            } else {
+                eprintln!("[get_mod_details] API returned status: {}", response.status());
             }
         }
         Err(e) => {
-            eprintln!("Failed to get mod details: {}", e);
+            eprintln!("[get_mod_details] Failed to get mod details: {}", e);
         }
     }
 
     // Return mock data structure
+    eprintln!("[get_mod_details] Returning mock data for mod: {}", mod_id);
     Ok(ModDatabaseMod {
         id: mod_id.clone(),
         name: mod_id,

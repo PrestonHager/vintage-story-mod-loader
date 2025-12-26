@@ -273,36 +273,52 @@
                 cd ../..
                 
                 echo ""
+                echo "=== Running TypeScript unit tests ==="
+                cd mod-loader
+                npm install
+                TEST_UNIT_EXIT_CODE=0
+                npm run test:unit || TEST_UNIT_EXIT_CODE=$?
+                cd ..
+                if [ "$TEST_UNIT_EXIT_CODE" -ne 0 ]; then
+                  echo "TypeScript unit tests failed!"
+                  exit $TEST_UNIT_EXIT_CODE
+                fi
+                
+                echo ""
                 echo "=== Running E2E tests ==="
                 cd mod-loader
-                export PLAYWRIGHT_BROWSERS_PATH=${pkgs.playwright.browsers}
                 export PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true
-                npm install
                 # Create symlink for browser version compatibility on NixOS
                 # Playwright may expect a different version than what's in the Nix store
                 # Use a writable temp directory for the symlink
                 BROWSERS_DIR="${pkgs.playwright.browsers}"
                 TEMP_BROWSERS_DIR=$(mktemp -d)
-                # Copy the browsers directory structure to a writable location
-                cp -r "$BROWSERS_DIR"/* "$TEMP_BROWSERS_DIR/" 2>/dev/null || true
+                trap 'rm -rf "$TEMP_BROWSERS_DIR"' EXIT
+                # Copy symlinks to temp directory (they point to the actual browsers)
+                for item in "$BROWSERS_DIR"/*; do
+                  if [ -L "$item" ]; then
+                    ln -sf "$(readlink -f "$item")" "$TEMP_BROWSERS_DIR/$(basename "$item")" || true
+                  fi
+                done
                 # Create symlink for version compatibility
-                if [ -d "$TEMP_BROWSERS_DIR/chromium_headless_shell-1194" ] && [ ! -e "$TEMP_BROWSERS_DIR/chromium_headless_shell-1200" ]; then
-                  ln -sf "$TEMP_BROWSERS_DIR/chromium_headless_shell-1194" "$TEMP_BROWSERS_DIR/chromium_headless_shell-1200" || true
+                if [ -L "$TEMP_BROWSERS_DIR/chromium_headless_shell-1194" ] && [ ! -e "$TEMP_BROWSERS_DIR/chromium_headless_shell-1200" ]; then
+                  ln -sf "$(readlink -f "$TEMP_BROWSERS_DIR/chromium_headless_shell-1194")" "$TEMP_BROWSERS_DIR/chromium_headless_shell-1200" || true
                 fi
                 export PLAYWRIGHT_BROWSERS_PATH="$TEMP_BROWSERS_DIR"
                 # Skip playwright install on NixOS - browsers are provided by Nix
                 # Run tests and handle report server gracefully
-                set +e  # Don't exit on error, we'll handle it manually
-                TEST_EXIT_CODE=0
-                npm run test:e2e || TEST_EXIT_CODE=$?
+                TEST_E2E_EXIT_CODE=0
+                timeout 120 npm run test:e2e || TEST_E2E_EXIT_CODE=$?
                 # Cleanup temp directory
                 rm -rf "$TEMP_BROWSERS_DIR" || true
                 cd ..
-                if [ "$TEST_EXIT_CODE" -eq 0 ]; then
-                  echo ""
-                  echo "All tests passed!"
+                if [ "$TEST_E2E_EXIT_CODE" -ne 0 ]; then
+                  echo "E2E tests failed!"
+                  exit $TEST_E2E_EXIT_CODE
                 fi
-                exit $TEST_EXIT_CODE
+                
+                echo ""
+                echo "All tests passed!"
               '';
             }}/bin/test-all";
           };
@@ -379,7 +395,7 @@
                 # Use a writable temp directory for the symlink
                 BROWSERS_DIR="${pkgs.playwright.browsers}"
                 TEMP_BROWSERS_DIR=$(mktemp -d)
-                trap "rm -rf \"$TEMP_BROWSERS_DIR\"" EXIT
+                trap 'rm -rf "$TEMP_BROWSERS_DIR"' EXIT
                 # Copy symlinks to temp directory (they point to the actual browsers)
                 for item in "$BROWSERS_DIR"/*; do
                   if [ -L "$item" ]; then
@@ -425,7 +441,7 @@
             }}/bin/test-integration";
           };
 
-          # Run TypeScript unit tests (if they exist)
+          # Run TypeScript unit tests
           "test:unit" = {
             type = "app";
             program = "${pkgs.writeShellApplication {
@@ -434,18 +450,13 @@
                 nodejs
               ];
               text = ''
-                set -e
+                set +e  # Don't exit on error, we'll handle it manually
                 echo "Running TypeScript unit tests..."
-                if [ -d "mod-loader/tests/unit" ] && [ "$(ls -A mod-loader/tests/unit)" ]; then
-                  cd mod-loader
-                  npm install
-                  # Add unit test command here when implemented
-                  echo "TypeScript unit tests not yet implemented"
-                  exit 0
-                else
-                  echo "No TypeScript unit tests found"
-                  exit 0
-                fi
+                cd mod-loader
+                npm install
+                TEST_EXIT_CODE=0
+                npm run test:unit || TEST_EXIT_CODE=$?
+                exit $TEST_EXIT_CODE
               '';
             }}/bin/test-unit";
           };

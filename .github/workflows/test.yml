@@ -1,0 +1,88 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            rust-target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            rust-target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            rust-target: x86_64-apple-darwin
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-target }}
+
+      - name: Install dependencies
+        run: |
+          cd mod-loader
+          npm install
+
+      - name: Run Rust unit tests
+        run: |
+          cd mod-loader/src-tauri
+          cargo test --workspace
+        env:
+          RUST_BACKTRACE: 1
+
+      - name: Run linting
+        run: |
+          cd mod-loader/src-tauri
+          cargo clippy -- -D warnings
+          cd ..
+          npm run lint || true
+
+      - name: Run integration tests
+        run: |
+          cd mod-loader/src-tauri
+          cargo test --test '*' --workspace || true
+        env:
+          VS_MOD_LOADER_TEST_VS_PATH: ${{ secrets.VS_MOD_LOADER_TEST_VS_PATH }}
+          VS_MOD_LOADER_TEST_API_URL: https://mods.vintagestory.at
+          VS_MOD_LOADER_TEST_USERNAME: ${{ secrets.VS_MOD_DB_USERNAME }}
+          VS_MOD_LOADER_TEST_PASSWORD: ${{ secrets.VS_MOD_DB_PASSWORD }}
+          RUST_BACKTRACE: 1
+
+      - name: Setup Playwright
+        run: |
+          cd mod-loader
+          npx playwright install --with-deps || true
+
+      - name: Run E2E tests
+        run: |
+          cd mod-loader
+          npm run test:e2e || true
+        env:
+          RUST_BACKTRACE: 1
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: |
+            mod-loader/test-results/
+            mod-loader/playwright-report/
+

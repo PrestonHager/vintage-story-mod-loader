@@ -1,0 +1,91 @@
+# Vintage Story Mod Loader
+
+A cross-platform mod loader and manager for Vintage Story that provides an intuitive interface for managing mods, creating mod packs, and integrating with the Vintage Story mod database.
+
+## Features
+
+- **Cross-platform**: Works on Windows, macOS, and Linux
+- **Batch Mod Management**: Enable or disable multiple mods simultaneously
+- **Mod Database Integration**: Browse and download mods directly from the database
+- **Mod Pack System**: Create, import, export, and apply mod packs
+- **Configuration Editor**: Edit mod config files with syntax highlighting
+- **Auto-detection**: Automatically finds your Vintage Story installation
+- **Submission Interface**: Submit mod packs to the mod database
+
+## Installation
+
+### Windows
+
+Download the `.exe` installer from the [Releases](https://github.com/yourusername/vintage-story-mod-loader/releases) page.
+
+### macOS
+
+Download the `.dmg` file from the [Releases](https://github.com/yourusername/vintage-story-mod-loader/releases) page.
+
+### Linux
+
+Download the `.AppImage` or `.deb` package from the [Releases](https://github.com/yourusername/vintage-story-mod-loader/releases) page.
+
+## Development
+
+### Prerequisites
+
+- Node.js 20+
+- Rust (latest stable)
+- npm or yarn
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/vintage-story-mod-loader.git
+cd vintage-story-mod-loader
+
+# Install dependencies
+cd mod-loader
+npm install
+
+# Run in development mode
+npm run dev
+```
+
+### Building
+
+```bash
+cd mod-loader
+npm run tauri build
+```
+
+### Testing
+
+```bash
+# Run Rust unit tests
+cd mod-loader/src-tauri
+cargo test
+
+# Run E2E tests
+cd mod-loader
+npm run test:e2e
+```
+
+## Documentation
+
+See the [documentation website](https://yourusername.github.io/vintage-story-mod-loader/) for:
+- User Guide
+- Designer Guide
+- FAQ
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request.
+
+## License
+
+[Add your license here]
+
+## Acknowledgments
+
+- Vintage Story community
+- Tauri framework
+- React community
+

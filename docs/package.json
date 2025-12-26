@@ -1,0 +1,14 @@
+{
+  "name": "vs-mod-loader-docs",
+  "version": "1.0.0",
+  "description": "Documentation for Vintage Story Mod Loader",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vitepress": "^1.0.0"
+  }
+}
+

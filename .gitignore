@@ -1,0 +1,48 @@
+# Nix
+result
+result-*
+.direnv
+.direnv.lock
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+*.AppImage
+*.dmg
+*.exe
+*.deb
+
+# Tauri
+mod-loader/src-tauri/target/
+mod-loader/src-tauri/Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test results
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+

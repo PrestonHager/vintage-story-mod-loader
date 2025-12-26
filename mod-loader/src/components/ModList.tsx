@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { Mod } from "../types/mod";
 import { getSettings } from "../services/storage";
+import { useToast } from "./Toast";
 
 export default function ModList() {
   const [mods, setMods] = useState<Mod[]>([]);
@@ -9,6 +10,7 @@ export default function ModList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [modsPath, setModsPath] = useState<string>("");
+  const { showToast } = useToast();
 
   useEffect(() => {
     loadMods();
@@ -54,9 +56,11 @@ export default function ModList() {
       await invoke("enable_mods", { modsPath: modsPath, modIds });
       await loadMods();
       setSelectedMods(new Set());
+      showToast(`Enabled ${modIds.length} mod(s)`, "success");
     } catch (error) {
       console.error("Failed to enable mods:", error);
-      alert(`Failed to enable mods: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      showToast(`Failed to enable mods: ${errorMessage}`, "error");
     }
   }
 
@@ -66,9 +70,11 @@ export default function ModList() {
       await invoke("disable_mods", { modsPath: modsPath, modIds });
       await loadMods();
       setSelectedMods(new Set());
+      showToast(`Disabled ${modIds.length} mod(s)`, "success");
     } catch (error) {
       console.error("Failed to disable mods:", error);
-      alert(`Failed to disable mods: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      showToast(`Failed to disable mods: ${errorMessage}`, "error");
     }
   }
 

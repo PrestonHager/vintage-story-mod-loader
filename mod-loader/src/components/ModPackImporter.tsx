@@ -3,11 +3,13 @@ import { importModPack, applyModPack } from "../services/modpack";
 import { getSettings } from "../services/storage";
 import { invoke } from "@tauri-apps/api/core";
 import type { ModPack } from "../types/mod";
+import { useToast } from "./Toast";
 
 export default function ModPackImporter() {
   const [modPack, setModPack] = useState<ModPack | null>(null);
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState(false);
+  const { showToast } = useToast();
 
   async function handleImport() {
     try {
@@ -26,7 +28,7 @@ export default function ModPackImporter() {
           modsCount: pack.mods.length
         });
         setModPack(pack);
-        alert(`Successfully imported mod pack: ${pack.name}`);
+        showToast(`Successfully imported mod pack: ${pack.name}`, "success");
       } else {
         // User cancelled - no need to show error
         console.log("[Frontend] Import cancelled by user");
@@ -38,7 +40,7 @@ export default function ModPackImporter() {
         stack: error instanceof Error ? error.stack : undefined
       });
       const errorMessage = error instanceof Error ? error.message : String(error);
-      alert(`Failed to import mod pack: ${errorMessage}\n\nCheck the console and terminal for detailed error messages.`);
+      showToast(`Failed to import mod pack: ${errorMessage}`, "error", 8000);
     } finally {
       setLoading(false);
       console.log("[Frontend] Import process finished, loading set to false");
@@ -52,11 +54,16 @@ export default function ModPackImporter() {
       setApplying(true);
       const settings = await getSettings();
       const modsPath = settings.mods_path || await invoke<string>("get_vintage_story_path");
-      await applyModPack(modPack, modsPath);
-      alert("Mod pack applied successfully!");
+      const result = await applyModPack(modPack, modsPath, showToast);
+      if (result.success > 0 || result.failed === 0) {
+        showToast(`Mod pack applied successfully! ${result.success} mods processed.`, "success");
+      } else {
+        showToast(`Mod pack partially applied. ${result.success} succeeded, ${result.failed} failed.`, "warning", 8000);
+      }
     } catch (error) {
       console.error("Failed to apply mod pack:", error);
-      alert(`Failed to apply mod pack: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      showToast(`Failed to apply mod pack: ${errorMessage}`, "error", 8000);
     } finally {
       setApplying(false);
     }

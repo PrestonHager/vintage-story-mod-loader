@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { searchMods, downloadMod } from "../services/api";
 import type { ModDatabaseMod } from "../types/mod";
+import { useToast } from "./Toast";
 
 export default function ModBrowser() {
   const [mods, setMods] = useState<ModDatabaseMod[]>([]);
@@ -8,6 +9,7 @@ export default function ModBrowser() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState<Set<string>>(new Set());
+  const { showToast } = useToast();
 
   useEffect(() => {
     loadMods();
@@ -20,7 +22,8 @@ export default function ModBrowser() {
       setMods(result.mods);
     } catch (error) {
       console.error("Failed to load mods:", error);
-      alert(`Failed to load mods: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      showToast(`Failed to load mods: ${errorMessage}`, "error");
     } finally {
       setLoading(false);
     }
@@ -28,7 +31,7 @@ export default function ModBrowser() {
 
   async function handleDownload(mod: ModDatabaseMod) {
     if (!mod.download_url) {
-      alert("No download URL available for this mod");
+      showToast("No download URL available for this mod", "warning");
       return;
     }
 
@@ -39,10 +42,11 @@ export default function ModBrowser() {
       const settings = await getSettings();
       const modsPath = settings.mods_path || await invoke<string>("get_vintage_story_path");
       await downloadMod(mod.id, mod.download_url, modsPath);
-      alert(`Mod ${mod.name} installed successfully!`);
+      showToast(`Mod ${mod.name} installed successfully!`, "success");
     } catch (error) {
       console.error("Failed to download mod:", error);
-      alert(`Failed to download mod: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      showToast(`Failed to download mod: ${errorMessage}`, "error", 6000);
     } finally {
       setDownloading(prev => {
         const next = new Set(prev);

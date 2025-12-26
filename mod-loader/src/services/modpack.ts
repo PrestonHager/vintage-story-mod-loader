@@ -85,10 +85,26 @@ export async function importModPack(): Promise<ModPack | null> {
   }
 }
 
-export async function applyModPack(pack: ModPack, modsPath: string): Promise<void> {
+export interface ApplyModPackResult {
+  success: number;
+  failed: number;
+  skipped: number;
+}
+
+export async function applyModPack(
+  pack: ModPack,
+  modsPath: string,
+  showToast?: (message: string, type?: "success" | "error" | "warning" | "info", duration?: number) => void
+): Promise<ApplyModPackResult> {
   // Download missing mods and enable all mods in pack
   const { getModDetails, downloadMod } = await import("./api");
   const { invoke } = await import("@tauri-apps/api/core");
+
+  const result: ApplyModPackResult = {
+    success: 0,
+    failed: 0,
+    skipped: 0,
+  };
 
   for (const modPackMod of pack.mods) {
     try {
@@ -124,21 +140,45 @@ export async function applyModPack(pack: ModPack, modsPath: string): Promise<voi
 
         if (downloadUrl) {
           console.log(`[applyModPack] Downloading ${modPackMod.id} from ${downloadUrl}`);
-          await downloadMod(modPackMod.id, downloadUrl, modsPath);
+          try {
+            await downloadMod(modPackMod.id, downloadUrl, modsPath);
+            showToast?.(`Downloaded ${modPackMod.id}`, "success", 3000);
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            console.error(`[applyModPack] Failed to download ${modPackMod.id}:`, error);
+            showToast?.(`Failed to download ${modPackMod.id}: ${errorMsg}`, "error", 6000);
+            result.failed++;
+            continue; // Skip enabling if download failed
+          }
         } else {
           console.warn(`[applyModPack] No download URL available for ${modPackMod.id}, skipping download`);
+          showToast?.(`No download URL available for ${modPackMod.id}`, "warning", 5000);
+          result.skipped++;
+          // Still try to enable if it might already be installed
         }
       } else {
         console.log(`[applyModPack] Mod ${modPackMod.id} is already installed`);
+        result.skipped++;
       }
 
       // Enable mod
-      await invoke("enable_mods", { modsPath, modIds: [modPackMod.id] });
+      try {
+        await invoke("enable_mods", { modsPath, modIds: [modPackMod.id] });
+        result.success++;
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error(`[applyModPack] Failed to enable ${modPackMod.id}:`, error);
+        showToast?.(`Failed to enable ${modPackMod.id}: ${errorMsg}`, "error", 6000);
+        result.failed++;
+      }
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`Failed to process mod ${modPackMod.id}:`, error);
-      // Continue with other mods instead of throwing
-      console.warn(`Continuing with other mods...`);
+      showToast?.(`Failed to process ${modPackMod.id}: ${errorMsg}`, "error", 6000);
+      result.failed++;
     }
   }
+
+  return result;
 }
 

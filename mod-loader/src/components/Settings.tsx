@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { getSettings, saveSettings, type Settings as SettingsType } from "../services/storage";
 import { invoke } from "@tauri-apps/api/core";
+import { useToast } from "./Toast";
 
 export default function Settings() {
   const [settings, setSettings] = useState<SettingsType>({
@@ -8,6 +9,7 @@ export default function Settings() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     loadSettings();
@@ -41,10 +43,11 @@ export default function Settings() {
       await saveSettings(settings);
       // Apply theme immediately
       document.documentElement.setAttribute("data-theme", settings.theme);
-      alert("Settings saved successfully!");
+      showToast("Settings saved successfully!", "success");
     } catch (error) {
       console.error("Failed to save settings:", error);
-      alert(`Failed to save settings: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      showToast(`Failed to save settings: ${errorMessage}`, "error");
     } finally {
       setSaving(false);
     }

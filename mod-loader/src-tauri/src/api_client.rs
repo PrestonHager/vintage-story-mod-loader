@@ -187,6 +187,102 @@ pub async fn get_mod_download_url(mod_id: String, mod_url: Option<String>) -> Re
     Err(format!("Could not find download URL for {}", mod_id))
 }
 
+// Structures for mod search API response
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ModSearchResult {
+    #[serde(rename = "statuscode")]
+    status_code: Option<u16>,
+    pub mods: Vec<ModSearchItem>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ModSearchItem {
+    pub id: Option<u64>, // Numeric ID
+    pub modid: Option<String>, // Mod ID string from modinfo.json
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub author: Option<String>,
+    pub thumbnail: Option<String>,
+    pub category: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub releases: Option<Vec<ModRelease>>,
+}
+
+#[tauri::command]
+pub async fn search_mods(query: Option<String>, page: Option<usize>) -> Result<ModSearchResult, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+    
+    // API endpoint: /api/mods
+    // Parameters: text (search query), orderby, orderdirection
+    let mut api_url = "http://mods.vintagestory.at/api/mods".to_string();
+    let mut params = Vec::new();
+    
+    if let Some(q) = query {
+        if !q.trim().is_empty() {
+            params.push(format!("text={}", urlencoding::encode(&q)));
+        }
+    }
+    
+    // Add pagination if needed (API doesn't explicitly support page, but we can try)
+    if let Some(p) = page {
+        if p > 1 {
+            // Note: API docs don't mention pagination, but we'll include it in case
+            params.push(format!("page={}", p));
+        }
+    }
+    
+    if !params.is_empty() {
+        api_url.push('?');
+        api_url.push_str(&params.join("&"));
+    }
+    
+    eprintln!("[search_mods] Searching mods: {}", api_url);
+    
+    match client
+        .get(&api_url)
+        .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")
+        .send()
+        .await
+    {
+        Ok(response) => {
+            if response.status().is_success() {
+                match response.text().await {
+                    Ok(text) => {
+                        // Try to parse as ModSearchResult
+                        match serde_json::from_str::<ModSearchResult>(&text) {
+                            Ok(result) => {
+                                eprintln!("[search_mods] Found {} mods", result.mods.len());
+                                return Ok(result);
+                            }
+                            Err(e) => {
+                                eprintln!("[search_mods] Failed to parse search result: {}", e);
+                                eprintln!("[search_mods] Response preview: {}", &text.chars().take(500).collect::<String>());
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("[search_mods] Failed to read response: {}", e);
+                    }
+                }
+            } else {
+                eprintln!("[search_mods] API returned status: {}", response.status());
+            }
+        }
+        Err(e) => {
+            eprintln!("[search_mods] Failed to fetch API: {}", e);
+        }
+    }
+    
+    // Return empty result on error
+    Ok(ModSearchResult {
+        status_code: Some(500),
+        mods: vec![],
+    })
+}
+
 #[tauri::command]
 pub async fn download_mod(mod_id: String, download_url: String, mods_path: String) -> Result<String, String> {
     use zip::ZipArchive;

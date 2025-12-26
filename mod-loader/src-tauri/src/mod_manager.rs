@@ -137,6 +137,7 @@ pub async fn get_mod_list(mods_path: String, force_refresh: Option<bool>) -> Res
                 enabled,
                 info,
                 is_zip: false,
+                status: None,
             });
         } else if path.extension().and_then(|s| s.to_str()) == Some("zip") {
             // Handle .zip mod files (Vintage Story can load mods from .zip files)
@@ -214,6 +215,7 @@ pub async fn get_mod_list(mods_path: String, force_refresh: Option<bool>) -> Res
                 enabled,
                 info: Some(modinfo),
                 is_zip: true,
+                status: None,
             });
 
             // Save updated index only if we modified it (new mod or reindexed)
@@ -258,6 +260,7 @@ pub async fn get_mod_list(mods_path: String, force_refresh: Option<bool>) -> Res
                             enabled: false,
                             info,
                             is_zip: false,
+                            status: None,
                         });
                     } else if path.extension().and_then(|s| s.to_str()) == Some("zip") || 
                               path.extension().and_then(|s| s.to_str()) == Some("disabled") {
@@ -292,6 +295,7 @@ pub async fn get_mod_list(mods_path: String, force_refresh: Option<bool>) -> Res
                                 enabled: false,
                                 info: Some(modinfo),
                                 is_zip: true,
+                                status: None,
                             });
                         } else {
                             // Try to index it (only if not forcing refresh, otherwise skip)
@@ -323,6 +327,7 @@ pub async fn get_mod_list(mods_path: String, force_refresh: Option<bool>) -> Res
                                             enabled: false,
                                             info: Some(modinfo),
                                             is_zip: true,
+                                            status: None,
                                         });
 
                                         if let Err(e) = save_mod_index(&index) {

@@ -9,9 +9,9 @@ pub struct SubmissionResponse {
 
 #[tauri::command]
 pub async fn submit_mod_pack(
-    mod_pack: crate::mod_pack::ModPack,
-    username: Option<String>,
-    password: Option<String>,
+    _mod_pack: crate::mod_pack::ModPack,
+    _username: Option<String>,
+    _password: Option<String>,
 ) -> Result<SubmissionResponse, String> {
     let _client = reqwest::Client::builder()
         .cookie_store(true)

@@ -91,7 +91,7 @@ mod tests {
         let paths = get_default_paths();
         // Should return at least one path if HOME/APPDATA is set
         // This test verifies the function doesn't panic
-        assert!(paths.len() >= 0);
+        // paths.len() is always >= 0 since usize is unsigned, so no assertion needed
     }
 
     #[test]

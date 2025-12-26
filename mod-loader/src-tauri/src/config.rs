@@ -73,8 +73,8 @@ pub async fn save_settings(settings: Settings) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
-    use tempfile::TempDir;
+    
+    
 
     #[test]
     fn test_settings_default() {

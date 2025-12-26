@@ -5,7 +5,6 @@ import ModBrowser from "./components/ModBrowser";
 import ModPackCreator from "./components/ModPackCreator";
 import ModPackEditor from "./components/ModPackEditor";
 import ModPackImporter from "./components/ModPackImporter";
-import ConfigEditor from "./components/ConfigEditor";
 import Settings from "./components/Settings";
 import { getSettings } from "./services/storage";
 import { ToastProvider } from "./components/Toast";
@@ -49,7 +48,6 @@ function App() {
                 <Link to="/browser">Browse</Link>
                 <Link to="/packs">Create Pack</Link>
                 <Link to="/packs/import">Import Pack</Link>
-                <Link to="/config">Config</Link>
                 <Link to="/settings">Settings</Link>
               </div>
             </nav>
@@ -61,7 +59,6 @@ function App() {
                 <Route path="/packs" element={<ModPackCreator />} />
                 <Route path="/packs/edit" element={<ModPackEditor />} />
                 <Route path="/packs/import" element={<ModPackImporter />} />
-                <Route path="/config" element={<ConfigEditor />} />
                 <Route path="/settings" element={<Settings />} />
               </Routes>
             </main>

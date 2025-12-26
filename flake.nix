@@ -275,8 +275,9 @@
                 echo "=== Running E2E tests ==="
                 cd mod-loader
                 export PLAYWRIGHT_BROWSERS_PATH=${pkgs.playwright.browsers}
+                export PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true
                 npm install
-                npx playwright install --with-deps || true
+                # Skip playwright install on NixOS - browsers are provided by Nix
                 npm run test:e2e || exit 1
                 cd ..
                 
@@ -351,8 +352,9 @@
                 echo "Running E2E tests..."
                 cd mod-loader
                 export PLAYWRIGHT_BROWSERS_PATH=${pkgs.playwright.browsers}
+                export PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true
                 npm install
-                npx playwright install --with-deps || true
+                # Skip playwright install on NixOS - browsers are provided by Nix
                 npm run test:e2e
               '';
             }}/bin/test-e2e";

@@ -110,8 +110,7 @@ export async function applyModPack(
 ): Promise<ApplyModPackResult> {
   const { showToast, onProgress, onSuccess, onFailed, onSkipped, abortSignal } = options;
   // Download missing mods and enable all mods in pack
-  const apiModule = await import("./api");
-  const { downloadMod, getModDownloadUrl } = apiModule;
+  const { downloadMod, getModDownloadUrl } = await import("./api") as typeof import("./api");
   const { invoke } = await import("@tauri-apps/api/core");
   
   // Helper function to get download URL from mod page

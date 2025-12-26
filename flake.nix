@@ -66,6 +66,10 @@
           cairo.dev
           pango
           pango.dev
+          harfbuzz
+          harfbuzz.dev
+          fontconfig
+          fontconfig.dev
           cargo-tauri
         ];
 
@@ -239,6 +243,8 @@
                   pkgs.cairo.dev
                   pkgs.pango.dev
                   pkgs.librsvg.dev
+                  pkgs.harfbuzz.dev
+                  pkgs.fontconfig.dev
                 ]}"
                 
                 echo "=== Running Rust unit tests ==="
@@ -284,6 +290,8 @@
                   pkgs.cairo.dev
                   pkgs.pango.dev
                   pkgs.librsvg.dev
+                  pkgs.harfbuzz.dev
+                  pkgs.fontconfig.dev
                 ]}"
                 
                 cd mod-loader/src-tauri

@@ -115,5 +115,115 @@ describe('API Service', () => {
       expect(result.page).toBe(1);
     });
   });
+
+  describe('Negative Tests - Error Handling', () => {
+    describe('getModDownloadUrl', () => {
+      it('should handle invalid mod ID', async () => {
+        const { getModDownloadUrl } = await import('../../../src/services/api');
+        const error = new Error('Mod not found');
+        (invoke as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+
+        await expect(getModDownloadUrl('')).rejects.toThrow();
+      });
+
+      it('should handle non-existent mod', async () => {
+        const { getModDownloadUrl } = await import('../../../src/services/api');
+        const error = new Error('Mod not found: nonexistent-mod');
+        (invoke as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+
+        await expect(getModDownloadUrl('nonexistent-mod')).rejects.toThrow();
+      });
+
+      it('should handle API server error (500)', async () => {
+        const { getModDownloadUrl } = await import('../../../src/services/api');
+        const error = new Error('Internal Server Error');
+        (invoke as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+
+        await expect(getModDownloadUrl('mod1')).rejects.toThrow();
+      });
+
+      it('should handle API server error (503)', async () => {
+        const { getModDownloadUrl } = await import('../../../src/services/api');
+        const error = new Error('Service Unavailable');
+        (invoke as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+
+        await expect(getModDownloadUrl('mod1')).rejects.toThrow();
+      });
+
+      it('should handle network timeout', async () => {
+        const { getModDownloadUrl } = await import('../../../src/services/api');
+        const error = new Error('Network timeout');
+        (invoke as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+
+        await expect(getModDownloadUrl('mod1')).rejects.toThrow();
+      });
+
+      it('should handle malformed API response', async () => {
+        const { getModDownloadUrl } = await import('../../../src/services/api');
+        const error = new Error('Invalid JSON response');
+        (invoke as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+
+        await expect(getModDownloadUrl('mod1')).rejects.toThrow();
+      });
+    });
+
+    describe('downloadMod', () => {
+      it('should handle invalid URL', async () => {
+        const { downloadMod } = await import('../../../src/services/api');
+        const error = new Error('Invalid URL');
+        (invoke as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+
+        await expect(downloadMod('mod1', 'invalid-url', '/path/to/mods')).rejects.toThrow();
+      });
+
+      it('should handle network failure', async () => {
+        const { downloadMod } = await import('../../../src/services/api');
+        const error = new Error('Network error');
+        (invoke as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+
+        await expect(downloadMod('mod1', 'https://example.com/mod.zip', '/path/to/mods')).rejects.toThrow();
+      });
+
+      it('should handle disk full error', async () => {
+        const { downloadMod } = await import('../../../src/services/api');
+        const error = new Error('No space left on device');
+        (invoke as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+
+        await expect(downloadMod('mod1', 'https://example.com/mod.zip', '/path/to/mods')).rejects.toThrow();
+      });
+
+      it('should handle permission denied error', async () => {
+        const { downloadMod } = await import('../../../src/services/api');
+        const error = new Error('Permission denied');
+        (invoke as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+
+        await expect(downloadMod('mod1', 'https://example.com/mod.zip', '/path/to/mods')).rejects.toThrow();
+      });
+
+      it('should handle corrupted zip file', async () => {
+        const { downloadMod } = await import('../../../src/services/api');
+        const error = new Error('Corrupted zip file');
+        (invoke as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+
+        await expect(downloadMod('mod1', 'https://example.com/mod.zip', '/path/to/mods')).rejects.toThrow();
+      });
+    });
+
+    describe('searchMods', () => {
+      it('should handle invalid search parameters', async () => {
+        const error = new Error('Invalid search parameters');
+        (invoke as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+
+        await expect(searchMods('', -1)).rejects.toThrow();
+      });
+
+      it('should handle API rate limiting', async () => {
+        const error = new Error('Rate limit exceeded');
+        (invoke as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+
+        await expect(searchMods('test')).rejects.toThrow();
+      });
+    });
+  });
 });
 

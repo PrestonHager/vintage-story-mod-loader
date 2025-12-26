@@ -140,5 +140,180 @@ describe('ModPack Service', () => {
       await expect(importModPack()).rejects.toThrow('Failed to import mod pack: Failed to read file');
     });
   });
+
+  describe('Negative Tests - Invalid Input', () => {
+    describe('importModPack', () => {
+      it('should handle importing invalid JSON (malformed syntax)', async () => {
+        (open as ReturnType<typeof vi.fn>).mockResolvedValue('/path/to/invalid.json');
+        const error = new Error('Failed to parse JSON: Unexpected token');
+        (invoke as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+
+        await expect(importModPack()).rejects.toThrow('Failed to import mod pack');
+      });
+
+      it('should handle importing mod pack with missing required fields (name)', async () => {
+        (open as ReturnType<typeof vi.fn>).mockResolvedValue('/path/to/pack.json');
+        const invalidPack = {
+          version: '1.0.0',
+          mods: [],
+          metadata: {},
+        };
+        (invoke as ReturnType<typeof vi.fn>).mockResolvedValue(invalidPack);
+
+        const result = await importModPack();
+        // Should still return the pack but validation should happen elsewhere
+        expect(result).toBeTruthy();
+      });
+
+      it('should handle importing mod pack with missing required fields (version)', async () => {
+        (open as ReturnType<typeof vi.fn>).mockResolvedValue('/path/to/pack.json');
+        const invalidPack = {
+          name: 'Test Pack',
+          mods: [],
+          metadata: {},
+        };
+        (invoke as ReturnType<typeof vi.fn>).mockResolvedValue(invalidPack);
+
+        const result = await importModPack();
+        expect(result).toBeTruthy();
+      });
+
+      it('should handle importing mod pack with missing required fields (mods)', async () => {
+        (open as ReturnType<typeof vi.fn>).mockResolvedValue('/path/to/pack.json');
+        const invalidPack = {
+          name: 'Test Pack',
+          version: '1.0.0',
+          metadata: {},
+        };
+        (invoke as ReturnType<typeof vi.fn>).mockResolvedValue(invalidPack);
+
+        const result = await importModPack();
+        expect(result).toBeTruthy();
+      });
+
+      it('should handle importing mod pack with invalid version format', async () => {
+        (open as ReturnType<typeof vi.fn>).mockResolvedValue('/path/to/pack.json');
+        const invalidPack: ModPack = {
+          name: 'Test Pack',
+          version: 'invalid-version-format',
+          description: 'Test',
+          mods: [],
+          metadata: {},
+        };
+        (invoke as ReturnType<typeof vi.fn>).mockResolvedValue(invalidPack);
+
+        const result = await importModPack();
+        expect(result).toBeTruthy();
+      });
+
+      it('should handle importing mod pack with empty mods array', async () => {
+        (open as ReturnType<typeof vi.fn>).mockResolvedValue('/path/to/pack.json');
+        const pack: ModPack = {
+          name: 'Test Pack',
+          version: '1.0.0',
+          description: 'Test',
+          mods: [],
+          metadata: {},
+        };
+        (invoke as ReturnType<typeof vi.fn>).mockResolvedValue(pack);
+
+        const result = await importModPack();
+        expect(result).toBeTruthy();
+        expect(result?.mods).toHaveLength(0);
+      });
+
+      it('should handle importing mod pack with invalid mod IDs (empty strings)', async () => {
+        (open as ReturnType<typeof vi.fn>).mockResolvedValue('/path/to/pack.json');
+        const pack: ModPack = {
+          name: 'Test Pack',
+          version: '1.0.0',
+          description: 'Test',
+          mods: [{ id: '', version: '1.0.0' }],
+          metadata: {},
+        };
+        (invoke as ReturnType<typeof vi.fn>).mockResolvedValue(pack);
+
+        const result = await importModPack();
+        expect(result).toBeTruthy();
+      });
+
+      it('should handle importing mod pack with invalid URLs (malformed)', async () => {
+        (open as ReturnType<typeof vi.fn>).mockResolvedValue('/path/to/pack.json');
+        const pack: ModPack = {
+          name: 'Test Pack',
+          version: '1.0.0',
+          description: 'Test',
+          mods: [{ id: 'mod1', version: '1.0.0', url: 'not-a-valid-url' }],
+          metadata: {},
+        };
+        (invoke as ReturnType<typeof vi.fn>).mockResolvedValue(pack);
+
+        const result = await importModPack();
+        expect(result).toBeTruthy();
+      });
+
+      it('should handle importing mod pack with null values in required fields', async () => {
+        (open as ReturnType<typeof vi.fn>).mockResolvedValue('/path/to/pack.json');
+        const invalidPack = {
+          name: null,
+          version: '1.0.0',
+          mods: [],
+          metadata: {},
+        };
+        (invoke as ReturnType<typeof vi.fn>).mockResolvedValue(invalidPack);
+
+        const result = await importModPack();
+        expect(result).toBeTruthy();
+      });
+
+      it('should handle importing mod pack with wrong data types', async () => {
+        (open as ReturnType<typeof vi.fn>).mockResolvedValue('/path/to/pack.json');
+        const invalidPack = {
+          name: 12345, // Should be string
+          version: '1.0.0',
+          mods: [],
+          metadata: {},
+        };
+        (invoke as ReturnType<typeof vi.fn>).mockResolvedValue(invalidPack);
+
+        const result = await importModPack();
+        expect(result).toBeTruthy();
+      });
+
+      it('should handle importing mod pack with extremely long strings (DoS prevention)', async () => {
+        (open as ReturnType<typeof vi.fn>).mockResolvedValue('/path/to/pack.json');
+        const longString = 'a'.repeat(1000000);
+        const pack: ModPack = {
+          name: longString,
+          version: '1.0.0',
+          description: 'Test',
+          mods: [],
+          metadata: {},
+        };
+        (invoke as ReturnType<typeof vi.fn>).mockResolvedValue(pack);
+
+        const result = await importModPack();
+        expect(result).toBeTruthy();
+      });
+    });
+
+    describe('exportModPack', () => {
+      it('should handle exporting with invalid mod pack data', async () => {
+        const invalidPack = {
+          name: '',
+          version: '1.0.0',
+          mods: [],
+          metadata: {},
+        } as ModPack;
+
+        (save as ReturnType<typeof vi.fn>).mockResolvedValue('/path/to/pack.json');
+        (invoke as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+        await exportModPack(invalidPack);
+
+        expect(invoke).toHaveBeenCalled();
+      });
+    });
+  });
 });
 

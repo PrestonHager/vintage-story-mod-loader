@@ -101,7 +101,7 @@
     {
       "id": "VanillaVariants",
       "version": "7.1.0",
-      "url": "https://mods.vintagestory.at/api/mod/VanillaVariants"
+      "url": "https://mods.vintagestory.at/api/mod/vanvar"
     },
     {
       "id": "StoneQuarry",
@@ -191,7 +191,7 @@
     {
       "id": "expanded_matter",
       "version": "3.4.0",
-      "url": "https://mods.vintagestory.at/api/mod/expanded_matter"
+      "url": "https://mods.vintagestory.at/api/mod/em"
     },
     {
       "id": "combatoverhaul",
@@ -226,7 +226,7 @@
     {
       "id": "AutoMapMarkers",
       "version": "4.0.3",
-      "url": "https://mods.vintagestory.at/api/mod/AutoMapMarkers"
+      "url": "https://mods.vintagestory.at/api/mod/automapmarkers"
     },
     {
       "id": "BetterFirepit",

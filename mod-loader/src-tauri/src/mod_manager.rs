@@ -33,6 +33,8 @@ pub struct Mod {
     pub info: Option<ModInfo>,
     #[serde(default)]
     pub is_zip: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status: Option<crate::mod_status::ModStatus>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -11,6 +11,24 @@ export interface ModInfo {
   dependencies?: any;
 }
 
+export interface ModDependency {
+  modid: string;
+  version?: string; // Optional version requirement
+}
+
+export interface OutdatedDependency {
+  modid: string;
+  required: string;
+  installed: string;
+}
+
+export interface ModStatus {
+  hasUpdate: boolean;
+  latestVersion?: string;
+  missingDependencies: ModDependency[];
+  outdatedDependencies: OutdatedDependency[];
+}
+
 export interface Mod {
   id: string;
   name: string;
@@ -19,6 +37,7 @@ export interface Mod {
   enabled: boolean;
   info?: ModInfo;
   is_zip?: boolean;
+  status?: ModStatus;
 }
 
 export interface ModDatabaseMod {

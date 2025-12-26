@@ -10,6 +10,8 @@ export default function ModList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [modsPath, setModsPath] = useState<string>("");
+  const [modStatuses, setModStatuses] = useState<Map<string, ModStatus>>(new Map());
+  const [checkingStatus, setCheckingStatus] = useState<Set<string>>(new Set());
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -25,10 +27,58 @@ export default function ModList() {
       
       const modList = await invoke<Mod[]>("get_mod_list", { modsPath: path, forceRefresh: true });
       setMods(modList);
+      
+      // Check status for all mods
+      await checkAllModStatuses(path);
     } catch (error) {
       console.error("Failed to load mods:", error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function checkAllModStatuses(path: string) {
+    try {
+      const statuses = await invoke<Record<string, ModStatus>>("check_all_mods_status", { modsPath: path });
+      setModStatuses(new Map(Object.entries(statuses)));
+    } catch (error) {
+      console.error("Failed to check mod statuses:", error);
+    }
+  }
+
+  async function handleUpdateMod(modId: string) {
+    try {
+      setCheckingStatus(prev => new Set(prev).add(modId));
+      await invoke("update_mod", { modId, modsPath: modsPath });
+      showToast(`Updated ${modId} successfully`, "success");
+      await loadMods();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      showToast(`Failed to update ${modId}: ${errorMessage}`, "error");
+    } finally {
+      setCheckingStatus(prev => {
+        const next = new Set(prev);
+        next.delete(modId);
+        return next;
+      });
+    }
+  }
+
+  async function handleInstallDependencies(modId: string) {
+    try {
+      setCheckingStatus(prev => new Set(prev).add(modId));
+      const installed = await invoke<string[]>("install_dependencies", { modId, modsPath: modsPath });
+      showToast(`Installed ${installed.length} dependency/dependencies for ${modId}`, "success");
+      await loadMods();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      showToast(`Failed to install dependencies for ${modId}: ${errorMessage}`, "error");
+    } finally {
+      setCheckingStatus(prev => {
+        const next = new Set(prev);
+        next.delete(modId);
+        return next;
+      });
     }
   }
 
@@ -135,37 +185,97 @@ export default function ModList() {
             </p>
           </div>
         ) : (
-          filteredMods.map((mod) => (
-            <div key={mod.id} className="card">
-              <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                <input
-                  type="checkbox"
-                  checked={selectedMods.has(mod.id)}
-                  onChange={() => toggleModSelection(mod.id)}
-                />
-                <div style={{ flex: 1 }}>
-                  <h3>{mod.name}</h3>
-                  <p style={{ color: "#666", fontSize: "0.9rem" }}>
-                    ID: {mod.id} | Version: {mod.version}
-                  </p>
-                  {mod.info?.description && (
-                    <p style={{ marginTop: "0.5rem" }}>{mod.info.description}</p>
-                  )}
+          filteredMods.map((mod) => {
+            const status = modStatuses.get(mod.id);
+            const hasUpdate = status?.hasUpdate || false;
+            const hasMissingDeps = status?.missingDependencies && status.missingDependencies.length > 0;
+            const hasOutdatedDeps = status?.outdatedDependencies && status.outdatedDependencies.length > 0;
+            const needsAction = hasUpdate || hasMissingDeps || hasOutdatedDeps;
+            const isChecking = checkingStatus.has(mod.id);
+            
+            return (
+              <div key={mod.id} className="card">
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedMods.has(mod.id)}
+                    onChange={() => toggleModSelection(mod.id)}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <h3>{mod.name}</h3>
+                    <p style={{ color: "#666", fontSize: "0.9rem" }}>
+                      ID: {mod.id} | Version: {mod.version}
+                      {status?.latestVersion && status.latestVersion !== mod.version && (
+                        <span style={{ color: "#f39c12", marginLeft: "0.5rem" }}>
+                          (Latest: {status.latestVersion})
+                        </span>
+                      )}
+                    </p>
+                    {mod.info?.description && (
+                      <p style={{ marginTop: "0.5rem" }}>{mod.info.description}</p>
+                    )}
+                    {hasMissingDeps && (
+                      <p style={{ marginTop: "0.5rem", color: "#e74c3c", fontSize: "0.875rem" }}>
+                        Missing dependencies: {status!.missingDependencies.map(d => d.modid).join(", ")}
+                      </p>
+                    )}
+                    {hasOutdatedDeps && (
+                      <p style={{ marginTop: "0.5rem", color: "#f39c12", fontSize: "0.875rem" }}>
+                        Outdated dependencies: {status!.outdatedDependencies.map(d => `${d.modid} (${d.installed} → ${d.required})`).join(", ")}
+                      </p>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", alignItems: "flex-end" }}>
+                    <span
+                      style={{
+                        padding: "0.25rem 0.75rem",
+                        borderRadius: "4px",
+                        backgroundColor: mod.enabled ? "#27ae60" : "#e74c3c",
+                        color: "white",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      {mod.enabled ? "Enabled" : "Disabled"}
+                    </span>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <button
+                        onClick={() => handleUpdateMod(mod.id)}
+                        disabled={!hasUpdate || isChecking}
+                        style={{
+                          padding: "0.25rem 0.75rem",
+                          fontSize: "0.875rem",
+                          backgroundColor: hasUpdate ? "#3498db" : "#95a5a6",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          cursor: hasUpdate && !isChecking ? "pointer" : "not-allowed",
+                        }}
+                        title={hasUpdate ? `Update to ${status?.latestVersion || "latest version"}` : "Already up to date"}
+                      >
+                        {isChecking ? "Updating..." : "Update"}
+                      </button>
+                      <button
+                        onClick={() => handleInstallDependencies(mod.id)}
+                        disabled={!needsAction || isChecking}
+                        style={{
+                          padding: "0.25rem 0.75rem",
+                          fontSize: "0.875rem",
+                          backgroundColor: needsAction ? "#9b59b6" : "#95a5a6",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          cursor: needsAction && !isChecking ? "pointer" : "not-allowed",
+                        }}
+                        title={needsAction ? "Install missing or update outdated dependencies" : "All dependencies satisfied"}
+                      >
+                        {isChecking ? "Installing..." : "Install Deps"}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <span
-                  style={{
-                    padding: "0.25rem 0.75rem",
-                    borderRadius: "4px",
-                    backgroundColor: mod.enabled ? "#27ae60" : "#e74c3c",
-                    color: "white",
-                    fontSize: "0.875rem",
-                  }}
-                >
-                  {mod.enabled ? "Enabled" : "Disabled"}
-                </span>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

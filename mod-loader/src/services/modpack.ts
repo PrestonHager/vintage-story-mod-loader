@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import type { ModPack } from "../types/mod";
+import { downloadMod, getModDownloadUrl } from "./api";
 
 export async function exportModPack(pack: ModPack): Promise<void> {
   const filePath = await save({
@@ -110,7 +111,6 @@ export async function applyModPack(
 ): Promise<ApplyModPackResult> {
   const { showToast, onProgress, onSuccess, onFailed, onSkipped, abortSignal } = options;
   // Download missing mods and enable all mods in pack
-  const { downloadMod, getModDownloadUrl } = await import("./api") as typeof import("./api");
   const { invoke } = await import("@tauri-apps/api/core");
   
   // Helper function to get download URL from mod page

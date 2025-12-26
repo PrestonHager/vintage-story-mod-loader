@@ -46,22 +46,32 @@ pub async fn get_mod_download_url(mod_id: String, mod_url: Option<String>) -> Re
     
     // Look for download links in the HTML
     // Pattern: /download/<number>/<filename>
-    let download_pattern = Regex::new(r#"/download/(\d+)/[^"'\s]+\.(zip|tar|tar\.gz)"#)
+    // Try multiple patterns to catch different HTML structures
+    
+    // Pattern 1: Direct download link with number
+    let download_pattern = Regex::new(r#"/download/(\d+)/[^"'\s<>]+\.(zip|tar|tar\.gz)"#)
         .map_err(|e| format!("Failed to create regex: {}", e))?;
     
-    if let Some(captures) = download_pattern.captures(&html) {
-        let number = captures.get(1).unwrap().as_str();
-        let filename = captures.get(0).unwrap().as_str().trim_start_matches("/download/");
-        let download_url = format!("https://mods.vintagestory.at/download/{}", filename);
-        eprintln!("[get_mod_download_url] Found download URL: {}", download_url);
-        return Ok(download_url);
+    for cap in download_pattern.captures_iter(&html) {
+        if let Some(full_match) = cap.get(0) {
+            let path = full_match.as_str();
+            let download_url = if path.starts_with("http") {
+                path.to_string()
+            } else if path.starts_with("/") {
+                format!("https://mods.vintagestory.at{}", path)
+            } else {
+                format!("https://mods.vintagestory.at/{}", path)
+            };
+            eprintln!("[get_mod_download_url] Found download URL: {}", download_url);
+            return Ok(download_url);
+        }
     }
     
-    // Try alternative patterns
-    let alt_pattern = Regex::new(r#"href=["']([^"']*download[^"']*\.(zip|tar|tar\.gz))"#)
-        .map_err(|e| format!("Failed to create alt regex: {}", e))?;
+    // Pattern 2: href attribute with download link
+    let href_pattern = Regex::new(r#"href=["']([^"']*download[^"']*\.(zip|tar|tar\.gz))"#)
+        .map_err(|e| format!("Failed to create href regex: {}", e))?;
     
-    for cap in alt_pattern.captures_iter(&html) {
+    for cap in href_pattern.captures_iter(&html) {
         if let Some(url_match) = cap.get(1) {
             let mut url = url_match.as_str().to_string();
             // Make absolute if relative
@@ -70,8 +80,30 @@ pub async fn get_mod_download_url(mod_id: String, mod_url: Option<String>) -> Re
             } else if !url.starts_with("http") {
                 url = format!("https://mods.vintagestory.at/{}", url);
             }
-            eprintln!("[get_mod_download_url] Found download URL (alt): {}", url);
-            return Ok(url);
+            // Only return if it's a download URL
+            if url.contains("/download/") {
+                eprintln!("[get_mod_download_url] Found download URL (href): {}", url);
+                return Ok(url);
+            }
+        }
+    }
+    
+    // Pattern 3: Look for download button or link text
+    let button_pattern = Regex::new(r#"(?:download|Download)[^"']*href=["']([^"']+)"#)
+        .map_err(|e| format!("Failed to create button regex: {}", e))?;
+    
+    for cap in button_pattern.captures_iter(&html) {
+        if let Some(url_match) = cap.get(1) {
+            let mut url = url_match.as_str().to_string();
+            if url.contains("/download/") && (url.ends_with(".zip") || url.ends_with(".tar") || url.ends_with(".tar.gz")) {
+                if url.starts_with("/") {
+                    url = format!("https://mods.vintagestory.at{}", url);
+                } else if !url.starts_with("http") {
+                    url = format!("https://mods.vintagestory.at/{}", url);
+                }
+                eprintln!("[get_mod_download_url] Found download URL (button): {}", url);
+                return Ok(url);
+            }
         }
     }
     

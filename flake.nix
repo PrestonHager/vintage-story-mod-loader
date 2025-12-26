@@ -229,9 +229,27 @@
                 coreutils # for timeout and mktemp
               ]);
               text = ''
-                set -e
+                # Check if we should pause on error
+                PAUSE_ON_ERROR="${PAUSE_TEST_ON_ERROR:-0}"
+                if [ "$PAUSE_ON_ERROR" = "1" ]; then
+                  set -e
+                else
+                  set +e  # Don't exit on error, continue to next tests
+                fi
+                
                 echo "Running all tests..."
+                if [ "$PAUSE_ON_ERROR" = "1" ]; then
+                  echo "(PAUSE_TEST_ON_ERROR=1: Will stop on first failure)"
+                else
+                  echo "(Will continue running all tests even if one fails)"
+                fi
                 echo ""
+                
+                # Track test results
+                RUST_TEST_FAILED=0
+                UNIT_TEST_FAILED=0
+                INTEGRATION_TEST_FAILED=0
+                E2E_TEST_FAILED=0
                 
                 # Set up pkg-config environment variables for cargo
                 export OPENSSL_DIR="${pkgs.openssl.out}"
@@ -269,31 +287,45 @@
                 
                 echo "=== Running Rust unit tests ==="
                 cd mod-loader/src-tauri
-                cargo test --workspace || exit 1
+                if cargo test --workspace; then
+                  echo "✓ Rust unit tests passed"
+                else
+                  RUST_TEST_FAILED=1
+                  echo "✗ Rust unit tests failed"
+                  if [ "$PAUSE_ON_ERROR" = "1" ]; then
+                    exit 1
+                  fi
+                fi
                 cd ../..
                 
                 echo ""
                 echo "=== Running TypeScript unit tests ==="
                 cd mod-loader
                 npm install
-                TEST_UNIT_EXIT_CODE=0
-                npm run test:unit || TEST_UNIT_EXIT_CODE=$?
-                cd ..
-                if [ "$TEST_UNIT_EXIT_CODE" -ne 0 ]; then
-                  echo "TypeScript unit tests failed!"
-                  exit $TEST_UNIT_EXIT_CODE
+                if npm run test:unit; then
+                  echo "✓ TypeScript unit tests passed"
+                else
+                  UNIT_TEST_FAILED=1
+                  echo "✗ TypeScript unit tests failed"
+                  if [ "$PAUSE_ON_ERROR" = "1" ]; then
+                    exit 1
+                  fi
                 fi
+                cd ..
                 
                 echo ""
                 echo "=== Running integration tests ==="
                 cd mod-loader
-                TEST_INTEGRATION_EXIT_CODE=0
-                npm run test:integration || TEST_INTEGRATION_EXIT_CODE=$?
-                cd ..
-                if [ "$TEST_INTEGRATION_EXIT_CODE" -ne 0 ]; then
-                  echo "Integration tests failed!"
-                  exit $TEST_INTEGRATION_EXIT_CODE
+                if npm run test:integration; then
+                  echo "✓ Integration tests passed"
+                else
+                  INTEGRATION_TEST_FAILED=1
+                  echo "✗ Integration tests failed"
+                  if [ "$PAUSE_ON_ERROR" = "1" ]; then
+                    exit 1
+                  fi
                 fi
+                cd ..
                 
                 echo ""
                 echo "=== Running E2E tests ==="
@@ -318,18 +350,33 @@
                 export PLAYWRIGHT_BROWSERS_PATH="$TEMP_BROWSERS_DIR"
                 # Skip playwright install on NixOS - browsers are provided by Nix
                 # Run tests and handle report server gracefully
-                TEST_E2E_EXIT_CODE=0
-                timeout 120 npm run test:e2e || TEST_E2E_EXIT_CODE=$?
+                if timeout 120 npm run test:e2e; then
+                  echo "✓ E2E tests passed"
+                else
+                  E2E_TEST_FAILED=1
+                  echo "✗ E2E tests failed"
+                  if [ "$PAUSE_ON_ERROR" = "1" ]; then
+                    exit 1
+                  fi
+                fi
                 # Cleanup temp directory
                 rm -rf "$TEMP_BROWSERS_DIR" || true
                 cd ..
-                if [ "$TEST_E2E_EXIT_CODE" -ne 0 ]; then
-                  echo "E2E tests failed!"
-                  exit $TEST_E2E_EXIT_CODE
-                fi
                 
                 echo ""
-                echo "All tests passed!"
+                echo "=== Test Summary ==="
+                TOTAL_FAILED=$((RUST_TEST_FAILED + UNIT_TEST_FAILED + INTEGRATION_TEST_FAILED + E2E_TEST_FAILED))
+                if [ "$TOTAL_FAILED" -eq 0 ]; then
+                  echo "✓ All tests passed!"
+                  exit 0
+                else
+                  echo "✗ Some tests failed:"
+                  [ "$RUST_TEST_FAILED" -eq 1 ] && echo "  - Rust unit tests"
+                  [ "$UNIT_TEST_FAILED" -eq 1 ] && echo "  - TypeScript unit tests"
+                  [ "$INTEGRATION_TEST_FAILED" -eq 1 ] && echo "  - Integration tests"
+                  [ "$E2E_TEST_FAILED" -eq 1 ] && echo "  - E2E tests"
+                  exit 1
+                fi
               '';
             }}/bin/test-all";
           };

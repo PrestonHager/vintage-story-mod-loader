@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import ModList from "./components/ModList";
 import ModBrowser from "./components/ModBrowser";

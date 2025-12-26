@@ -277,6 +277,12 @@
                 export PLAYWRIGHT_BROWSERS_PATH=${pkgs.playwright.browsers}
                 export PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true
                 npm install
+                # Create symlink for browser version compatibility on NixOS
+                # Playwright may expect a different version than what's in the Nix store
+                BROWSERS_DIR="${pkgs.playwright.browsers}"
+                if [ -d "$BROWSERS_DIR/chromium_headless_shell-1194" ] && [ ! -e "$BROWSERS_DIR/chromium_headless_shell-1200" ]; then
+                  ln -sf "$BROWSERS_DIR/chromium_headless_shell-1194" "$BROWSERS_DIR/chromium_headless_shell-1200" || true
+                fi
                 # Skip playwright install on NixOS - browsers are provided by Nix
                 npm run test:e2e || exit 1
                 cd ..
@@ -354,6 +360,12 @@
                 export PLAYWRIGHT_BROWSERS_PATH=${pkgs.playwright.browsers}
                 export PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true
                 npm install
+                # Create symlink for browser version compatibility on NixOS
+                # Playwright may expect a different version than what's in the Nix store
+                BROWSERS_DIR="${pkgs.playwright.browsers}"
+                if [ -d "$BROWSERS_DIR/chromium_headless_shell-1194" ] && [ ! -e "$BROWSERS_DIR/chromium_headless_shell-1200" ]; then
+                  ln -sf "$BROWSERS_DIR/chromium_headless_shell-1194" "$BROWSERS_DIR/chromium_headless_shell-1200" || true
+                fi
                 # Skip playwright install on NixOS - browsers are provided by Nix
                 npm run test:e2e
               '';

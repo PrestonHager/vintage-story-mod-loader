@@ -10,6 +10,7 @@ import Settings from "./components/Settings";
 import { getSettings } from "./services/storage";
 import { ToastProvider } from "./components/Toast";
 import { ModPackApplicationProvider } from "./contexts/ModPackApplicationContext";
+import { ModListProvider } from "./contexts/ModListContext";
 import ModPackProgressBar from "./components/ModPackProgressBar";
 
 function App() {
@@ -39,8 +40,9 @@ function App() {
 
   return (
     <ToastProvider>
-      <ModPackApplicationProvider>
-        <BrowserRouter>
+      <ModListProvider>
+        <ModPackApplicationProvider>
+          <BrowserRouter>
           <div className={`app theme-${theme}`}>
             <nav className="navbar">
               <h1>Vintage Story Mod Loader</h1>
@@ -67,8 +69,9 @@ function App() {
             </main>
             <ModPackProgressBar />
           </div>
-        </BrowserRouter>
-      </ModPackApplicationProvider>
+          </BrowserRouter>
+        </ModPackApplicationProvider>
+      </ModListProvider>
     </ToastProvider>
   );
 }

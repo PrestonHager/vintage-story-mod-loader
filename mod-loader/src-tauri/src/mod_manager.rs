@@ -53,6 +53,8 @@ pub struct ModIndexEntry {
     pub tags: Vec<String>,
     pub file_name: String,
     pub file_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dependencies: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -95,8 +97,15 @@ pub async fn get_mod_list(
         std::fs::read_dir(mods_dir).map_err(|e| format!("Failed to read mods directory: {}", e))?;
 
     let mut index = load_mod_index(); // Load index once at the start
+    let mut processed_count = 0u32;
 
     for entry in entries {
+        // Yield control periodically to prevent UI blocking
+        processed_count += 1;
+        if processed_count % 10 == 0 {
+            tokio::task::yield_now().await;
+        }
+
         let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
         let path = entry.path();
 
@@ -215,7 +224,7 @@ pub async fn get_mod_list(
                 side: entry.side.clone(),
                 requiredonclient: None,
                 requiredonserver: None,
-                dependencies: None,
+                dependencies: entry.dependencies.clone(),
             };
 
             eprintln!("Found zip mod: {} (enabled: {})", entry.modid, enabled);
@@ -231,11 +240,9 @@ pub async fn get_mod_list(
                 status: None,
             });
 
-            // Save updated index only if we modified it (new mod or reindexed)
-            if force_refresh || !index.mods.contains_key(&hash) {
-                if let Err(e) = save_mod_index(&index) {
-                    eprintln!("Warning: Failed to save mod index: {}", e);
-                }
+            // Save updated index incrementally to prevent data loss
+            if let Err(e) = save_mod_index(&index) {
+                eprintln!("Warning: Failed to save mod index: {}", e);
             }
         }
     }
@@ -244,6 +251,11 @@ pub async fn get_mod_list(
     if disabled_dir.exists() {
         if let Ok(disabled_entries) = std::fs::read_dir(&disabled_dir) {
             for entry in disabled_entries {
+                // Yield control periodically to prevent UI blocking
+                processed_count += 1;
+                if processed_count % 10 == 0 {
+                    tokio::task::yield_now().await;
+                }
                 if let Ok(entry) = entry {
                     let path = entry.path();
                     if path.is_dir() {
@@ -298,7 +310,7 @@ pub async fn get_mod_list(
                                 side: entry.side.clone(),
                                 requiredonclient: None,
                                 requiredonserver: None,
-                                dependencies: None,
+                                dependencies: entry.dependencies.clone(),
                             };
 
                             eprintln!("Found disabled zip mod: {}", entry.modid);
@@ -332,7 +344,7 @@ pub async fn get_mod_list(
                                             side: new_entry.side.clone(),
                                             requiredonclient: None,
                                             requiredonserver: None,
-                                            dependencies: None,
+                                            dependencies: new_entry.dependencies.clone(),
                                         };
 
                                         mods.push(Mod {
@@ -346,6 +358,7 @@ pub async fn get_mod_list(
                                             status: None,
                                         });
 
+                                        // Save index incrementally
                                         if let Err(e) = save_mod_index(&index) {
                                             eprintln!("Warning: Failed to save mod index: {}", e);
                                         }
@@ -704,6 +717,7 @@ fn index_zip_mod(zip_path: &Path) -> Result<ModIndexEntry, String> {
         tags: vec![],
         file_name: file_name.clone(),
         file_path: zip_path.to_string_lossy().to_string(),
+        dependencies: modinfo.dependencies.clone(),
     })
 }
 
@@ -772,6 +786,89 @@ pub async fn reindex_mod(mods_path: String, mod_id: String) -> Result<(), String
         }
         Err(e) => Err(format!("Failed to index mod: {}", e)),
     }
+}
+
+#[command]
+pub async fn delete_mods(mods_path: String, mod_ids: Vec<String>) -> Result<(), String> {
+    let mods_dir = Path::new(&mods_path);
+    let disabled_dir = mods_dir.join("disabled");
+    let mut index = load_mod_index();
+
+    for mod_id in mod_ids {
+        // First, try to find the mod in the index (for zip mods)
+        let mut found_in_index = false;
+        let mut hash_to_remove: Option<String> = None;
+        let mut path_to_delete: Option<PathBuf> = None;
+
+        for (hash, entry) in index.mods.iter() {
+            if entry.modid == mod_id {
+                let current_path = Path::new(&entry.file_path);
+                if current_path.exists() {
+                    hash_to_remove = Some(hash.clone());
+                    path_to_delete = Some(current_path.to_path_buf());
+                    found_in_index = true;
+                    break;
+                }
+            }
+        }
+
+        // Remove from index if found
+        if let Some(hash) = hash_to_remove {
+            index.mods.remove(&hash);
+        }
+
+        // Delete the file/directory
+        if let Some(path) = path_to_delete {
+            if path.is_file() {
+                std::fs::remove_file(&path)
+                    .map_err(|e| format!("Failed to delete mod file {}: {}", mod_id, e))?;
+            } else if path.is_dir() {
+                std::fs::remove_dir_all(&path)
+                    .map_err(|e| format!("Failed to delete mod directory {}: {}", mod_id, e))?;
+            }
+        }
+
+        if found_in_index {
+            continue;
+        }
+
+        // Try to find and delete mod files/directories that aren't in index
+        let mod_path = mods_dir.join(&mod_id);
+        let mod_path_zip = mods_dir.join(format!("{}.zip", mod_id));
+        let disabled_mod_path = disabled_dir.join(&mod_id);
+        let disabled_mod_path_zip = disabled_dir.join(format!("{}.disabled", mod_id));
+        let disabled_mod_path_zip_ext = disabled_dir.join(format!("{}.zip.disabled", mod_id));
+
+        let paths_to_try = vec![
+            mod_path.clone(),
+            mod_path_zip.clone(),
+            disabled_mod_path.clone(),
+            disabled_mod_path_zip.clone(),
+            disabled_mod_path_zip_ext.clone(),
+        ];
+
+        let mut deleted = false;
+        for path in paths_to_try {
+            if path.exists() {
+                if path.is_file() {
+                    std::fs::remove_file(&path)
+                        .map_err(|e| format!("Failed to delete mod file {}: {}", mod_id, e))?;
+                } else if path.is_dir() {
+                    std::fs::remove_dir_all(&path)
+                        .map_err(|e| format!("Failed to delete mod directory {}: {}", mod_id, e))?;
+                }
+                deleted = true;
+                break;
+            }
+        }
+
+        if !deleted {
+            return Err(format!("Mod {} not found to delete", mod_id));
+        }
+    }
+
+    save_mod_index(&index).map_err(|e| format!("Failed to save mod index: {}", e))?;
+    Ok(())
 }
 
 #[cfg(test)]

@@ -1,15 +1,14 @@
 import { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { useNavigate } from "react-router-dom";
 import type { Mod, ModPack } from "../types/mod";
-import { getSettings } from "../services/storage";
 import { exportModPack } from "../services/modpack";
+import { useModList } from "../contexts/ModListContext";
 
 const MOD_PACK_CREATOR_STORAGE_KEY = "vs-mod-loader-mod-pack-creator";
 
 export default function ModPackCreator() {
   const navigate = useNavigate();
-  const [mods, setMods] = useState<Mod[]>([]);
+  const { mods } = useModList();
   
   // Load from localStorage or default
   const loadInitialModPack = (): Partial<ModPack> => {
@@ -51,26 +50,10 @@ export default function ModPackCreator() {
 
   const [selectedMods, setSelectedMods] = useState<Set<string>>(loadInitialSelectedMods());
 
-  useEffect(() => {
-    loadMods();
-  }, []);
-
   // Save to localStorage whenever modPack changes
   useEffect(() => {
     localStorage.setItem(MOD_PACK_CREATOR_STORAGE_KEY, JSON.stringify(modPack));
   }, [modPack]);
-
-  async function loadMods() {
-    try {
-      const settings = await getSettings();
-      const path = settings.mods_path || await invoke<string>("get_vintage_story_path");
-      // Only index once when loading mods for pack creation (force_refresh: false)
-      const modList = await invoke<Mod[]>("get_mod_list", { modsPath: path, forceRefresh: false });
-      setMods(modList); // Load all mods, not just enabled ones
-    } catch (error) {
-      console.error("Failed to load mods:", error);
-    }
-  }
 
   function toggleModSelection(modId: string) {
     const newSelected = new Set(selectedMods);

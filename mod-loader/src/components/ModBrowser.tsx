@@ -3,8 +3,10 @@ import { searchMods, downloadMod, getModDownloadUrl } from "../services/api";
 import type { ModDatabaseMod } from "../types/mod";
 import { useToast } from "./Toast";
 import { invoke } from "@tauri-apps/api/core";
+import { useModList } from "../contexts/ModListContext";
 
 export default function ModBrowser() {
+  const { refreshMods } = useModList();
   const [mods, setMods] = useState<ModDatabaseMod[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -62,6 +64,10 @@ export default function ModBrowser() {
       
       await downloadMod(mod.id, downloadUrl, modsPath);
       showToast(`Mod ${mod.name} installed successfully!`, "success");
+      // Refresh mod list in background without blocking
+      refreshMods().catch((error) => {
+        console.error("Failed to refresh mods after download:", error);
+      });
     } catch (error) {
       console.error("Failed to download mod:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);

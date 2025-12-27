@@ -45,6 +45,11 @@ struct ModRelease {
     version: Option<String>,
 }
 
+// Base game mods that should be ignored in dependency checks
+fn is_base_game_mod(modid: &str) -> bool {
+    matches!(modid.to_lowercase().as_str(), "game" | "survival" | "creative")
+}
+
 // Parse dependencies from modinfo.json dependencies field
 // Dependencies can be in various formats:
 // - Array of strings: ["modid1", "modid2"]
@@ -58,22 +63,28 @@ fn parse_dependencies(deps: &serde_json::Value) -> Vec<ModDependency> {
             for item in arr {
                 match item {
                     serde_json::Value::String(modid) => {
-                        result.push(ModDependency {
-                            modid: modid.clone(),
-                            version: None,
-                        });
+                        // Filter out base game mods
+                        if !is_base_game_mod(&modid) {
+                            result.push(ModDependency {
+                                modid: modid.clone(),
+                                version: None,
+                            });
+                        }
                     }
                     serde_json::Value::Object(obj) => {
                         if let Some(modid_val) = obj.get("modid") {
                             if let Some(modid) = modid_val.as_str() {
-                                let version = obj
-                                    .get("version")
-                                    .and_then(|v| v.as_str())
-                                    .map(|s| s.to_string());
-                                result.push(ModDependency {
-                                    modid: modid.to_string(),
-                                    version,
-                                });
+                                // Filter out base game mods
+                                if !is_base_game_mod(modid) {
+                                    let version = obj
+                                        .get("version")
+                                        .and_then(|v| v.as_str())
+                                        .map(|s| s.to_string());
+                                    result.push(ModDependency {
+                                        modid: modid.to_string(),
+                                        version,
+                                    });
+                                }
                             }
                         }
                     }
@@ -83,11 +94,14 @@ fn parse_dependencies(deps: &serde_json::Value) -> Vec<ModDependency> {
         }
         serde_json::Value::Object(obj) => {
             for (modid, version_val) in obj {
-                let version = version_val.as_str().map(|s| s.to_string());
-                result.push(ModDependency {
-                    modid: modid.clone(),
-                    version,
-                });
+                // Filter out base game mods
+                if !is_base_game_mod(modid) {
+                    let version = version_val.as_str().map(|s| s.to_string());
+                    result.push(ModDependency {
+                        modid: modid.clone(),
+                        version,
+                    });
+                }
             }
         }
         _ => {}

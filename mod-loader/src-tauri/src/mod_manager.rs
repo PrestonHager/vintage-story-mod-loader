@@ -97,8 +97,15 @@ pub async fn get_mod_list(
         std::fs::read_dir(mods_dir).map_err(|e| format!("Failed to read mods directory: {}", e))?;
 
     let mut index = load_mod_index(); // Load index once at the start
+    let mut processed_count = 0u32;
 
     for entry in entries {
+        // Yield control periodically to prevent UI blocking
+        processed_count += 1;
+        if processed_count % 10 == 0 {
+            tokio::task::yield_now().await;
+        }
+
         let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
         let path = entry.path();
 
@@ -233,11 +240,9 @@ pub async fn get_mod_list(
                 status: None,
             });
 
-            // Save updated index only if we modified it (new mod or reindexed)
-            if force_refresh || !index.mods.contains_key(&hash) {
-                if let Err(e) = save_mod_index(&index) {
-                    eprintln!("Warning: Failed to save mod index: {}", e);
-                }
+            // Save updated index incrementally to prevent data loss
+            if let Err(e) = save_mod_index(&index) {
+                eprintln!("Warning: Failed to save mod index: {}", e);
             }
         }
     }
@@ -246,6 +251,11 @@ pub async fn get_mod_list(
     if disabled_dir.exists() {
         if let Ok(disabled_entries) = std::fs::read_dir(&disabled_dir) {
             for entry in disabled_entries {
+                // Yield control periodically to prevent UI blocking
+                processed_count += 1;
+                if processed_count % 10 == 0 {
+                    tokio::task::yield_now().await;
+                }
                 if let Ok(entry) = entry {
                     let path = entry.path();
                     if path.is_dir() {
@@ -348,6 +358,7 @@ pub async fn get_mod_list(
                                             status: None,
                                         });
 
+                                        // Save index incrementally
                                         if let Err(e) = save_mod_index(&index) {
                                             eprintln!("Warning: Failed to save mod index: {}", e);
                                         }

@@ -1,46 +1,30 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { Mod, ModStatus } from "../types/mod";
-import { getSettings } from "../services/storage";
 import { useToast } from "./Toast";
+import { useModList } from "../contexts/ModListContext";
 
 export default function ModList() {
-  const [mods, setMods] = useState<Mod[]>([]);
+  const { mods, modsPath, loading, refreshMods } = useModList();
   const [selectedMods, setSelectedMods] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [modsPath, setModsPath] = useState<string>("");
   const [modStatuses, setModStatuses] = useState<Map<string, ModStatus>>(new Map());
   const [checkingStatus, setCheckingStatus] = useState<Set<string>>(new Set());
   const { showToast } = useToast();
 
+  // Check status for all mods when mods change (don't block on errors)
   useEffect(() => {
-    loadMods();
-  }, []);
-
-  async function loadMods() {
-    try {
-      setLoading(true);
-      const settings = await getSettings();
-      const path = settings.mods_path || await invoke<string>("get_vintage_story_path");
-      setModsPath(path);
-      
-      const modList = await invoke<Mod[]>("get_mod_list", { modsPath: path, forceRefresh: true });
-      setMods(modList);
-      
-      // Check status for all mods (don't block on errors)
-      checkAllModStatuses(path).catch((error) => {
+    if (mods.length > 0 && modsPath) {
+      checkAllModStatuses(modsPath).catch((error) => {
         console.error("Failed to check mod statuses:", error);
         const errorMessage = error instanceof Error ? error.message : String(error);
         showToast(`Warning: Some mod status checks failed: ${errorMessage}`, "warning", 5000);
       });
-    } catch (error) {
-      console.error("Failed to load mods:", error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      showToast(`Failed to load mods: ${errorMessage}`, "error", 6000);
-    } finally {
-      setLoading(false);
     }
+  }, [mods, modsPath]);
+
+  async function loadMods() {
+    await refreshMods();
   }
 
   async function checkAllModStatuses(path: string) {
@@ -57,7 +41,10 @@ export default function ModList() {
       setCheckingStatus(prev => new Set(prev).add(modId));
       await invoke("update_mod", { modId, modsPath: modsPath });
       showToast(`Updated ${modId} successfully`, "success");
-      await loadMods();
+      // Refresh mods in background without blocking
+      refreshMods().catch((error) => {
+        console.error("Failed to refresh mods after update:", error);
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       showToast(`Failed to update ${modId}: ${errorMessage}`, "error");
@@ -75,7 +62,10 @@ export default function ModList() {
       setCheckingStatus(prev => new Set(prev).add(modId));
       const installed = await invoke<string[]>("install_dependencies", { modId, modsPath: modsPath });
       showToast(`Installed ${installed.length} dependency/dependencies for ${modId}`, "success");
-      await loadMods();
+      // Refresh mods in background without blocking
+      refreshMods().catch((error) => {
+        console.error("Failed to refresh mods after installing dependencies:", error);
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       showToast(`Failed to install dependencies for ${modId}: ${errorMessage}`, "error");
@@ -110,7 +100,10 @@ export default function ModList() {
     try {
       const modIds = Array.from(selectedMods);
       await invoke("enable_mods", { modsPath: modsPath, modIds });
-      await loadMods();
+      // Refresh mods in background without blocking
+      refreshMods().catch((error) => {
+        console.error("Failed to refresh mods after enabling:", error);
+      });
       setSelectedMods(new Set());
       showToast(`Enabled ${modIds.length} mod(s)`, "success");
     } catch (error) {
@@ -124,7 +117,10 @@ export default function ModList() {
     try {
       const modIds = Array.from(selectedMods);
       await invoke("disable_mods", { modsPath: modsPath, modIds });
-      await loadMods();
+      // Refresh mods in background without blocking
+      refreshMods().catch((error) => {
+        console.error("Failed to refresh mods after disabling:", error);
+      });
       setSelectedMods(new Set());
       showToast(`Disabled ${modIds.length} mod(s)`, "success");
     } catch (error) {
@@ -152,7 +148,10 @@ export default function ModList() {
     
     try {
       await invoke("delete_mods", { modsPath: modsPath, modIds });
-      await loadMods();
+      // Refresh mods in background without blocking
+      refreshMods().catch((error) => {
+        console.error("Failed to refresh mods after deleting:", error);
+      });
       setSelectedMods(new Set());
       showToast(`Deleted ${count} mod(s)`, "success");
     } catch (error) {
@@ -186,7 +185,7 @@ export default function ModList() {
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ flex: 1 }}
           />
-          <button onClick={loadMods}>Refresh</button>
+          <button onClick={() => refreshMods()}>Refresh</button>
           <button onClick={toggleSelectAll}>
             {selectedMods.size === filteredMods.length ? "Deselect All" : "Select All"}
           </button>

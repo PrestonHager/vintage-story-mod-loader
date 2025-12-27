@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import type { Mod, ModStatus } from "../types/mod";
+import type { ModStatus } from "../types/mod";
 import { useToast } from "./Toast";
 import { useModList } from "../contexts/ModListContext";
 
@@ -22,10 +22,6 @@ export default function ModList() {
       });
     }
   }, [mods, modsPath]);
-
-  async function loadMods() {
-    await refreshMods();
-  }
 
   async function checkAllModStatuses(path: string) {
     try {

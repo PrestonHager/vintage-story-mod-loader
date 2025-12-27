@@ -29,14 +29,7 @@ describe('QuiversAndSheaths Dependency Detection', () => {
       },
     ];
 
-    // Mock the API response for quiversandsheaths (no update available)
-    const mockApiResponse = {
-      mod: {
-        releases: [{ version: '0.6.6' }],
-      },
-    };
-
-    (invoke as ReturnType<typeof vi.fn>).mockImplementation((cmd: string, args?: any) => {
+    (invoke as ReturnType<typeof vi.fn>).mockImplementation((cmd: string) => {
       if (cmd === 'get_mod_list') {
         return Promise.resolve(mockModList);
       }

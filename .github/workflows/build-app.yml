@@ -93,8 +93,8 @@ jobs:
         with:
           name: ${{ matrix.platform }}-${{ matrix.args }}
           path: |
-            mod-loader/src-tauri/target/**/release/*.exe
-            mod-loader/src-tauri/target/**/release/*.dmg
-            mod-loader/src-tauri/target/**/release/*.AppImage
-            mod-loader/src-tauri/target/**/release/*.deb
+            mod-loader/src-tauri/target/release/**/*.exe
+            mod-loader/src-tauri/target/release/**/*.dmg
+            mod-loader/src-tauri/target/release/**/*.AppImage
+            mod-loader/src-tauri/target/release/**/*.deb
 

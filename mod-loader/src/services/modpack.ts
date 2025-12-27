@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
-import type { ModPack } from "../types/mod";
+import type { ModPack, ModPackMetadata } from "../types/mod";
 import { downloadMod as apiDownloadMod, getModDownloadUrl as apiGetModDownloadUrl } from "./api";
 
 export async function exportModPack(pack: ModPack): Promise<void> {
@@ -70,9 +70,12 @@ export async function importModPack(): Promise<ModPack | null> {
     
     // Validate and normalize the mod pack structure
     // Create a new object with validated structure instead of mutating the original
+    // Ensure all required fields are present and of the expected shape
     const validatedPack: ModPack = {
       ...pack,
+      description: typeof pack.description === "string" ? pack.description : "",
       mods: Array.isArray(pack.mods) ? pack.mods : [],
+      metadata: pack.metadata ?? ({} as ModPackMetadata),
     };
     
     console.log("[modpack.ts] Backend returned mod pack:", {

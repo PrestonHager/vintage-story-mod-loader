@@ -777,6 +777,89 @@ pub async fn reindex_mod(mods_path: String, mod_id: String) -> Result<(), String
     }
 }
 
+#[command]
+pub async fn delete_mods(mods_path: String, mod_ids: Vec<String>) -> Result<(), String> {
+    let mods_dir = Path::new(&mods_path);
+    let disabled_dir = mods_dir.join("disabled");
+    let mut index = load_mod_index();
+
+    for mod_id in mod_ids {
+        // First, try to find the mod in the index (for zip mods)
+        let mut found_in_index = false;
+        let mut hash_to_remove: Option<String> = None;
+        let mut path_to_delete: Option<PathBuf> = None;
+
+        for (hash, entry) in index.mods.iter() {
+            if entry.modid == mod_id {
+                let current_path = Path::new(&entry.file_path);
+                if current_path.exists() {
+                    hash_to_remove = Some(hash.clone());
+                    path_to_delete = Some(current_path.to_path_buf());
+                    found_in_index = true;
+                    break;
+                }
+            }
+        }
+
+        // Remove from index if found
+        if let Some(hash) = hash_to_remove {
+            index.mods.remove(&hash);
+        }
+
+        // Delete the file/directory
+        if let Some(path) = path_to_delete {
+            if path.is_file() {
+                std::fs::remove_file(&path)
+                    .map_err(|e| format!("Failed to delete mod file {}: {}", mod_id, e))?;
+            } else if path.is_dir() {
+                std::fs::remove_dir_all(&path)
+                    .map_err(|e| format!("Failed to delete mod directory {}: {}", mod_id, e))?;
+            }
+        }
+
+        if found_in_index {
+            continue;
+        }
+
+        // Try to find and delete mod files/directories that aren't in index
+        let mod_path = mods_dir.join(&mod_id);
+        let mod_path_zip = mods_dir.join(format!("{}.zip", mod_id));
+        let disabled_mod_path = disabled_dir.join(&mod_id);
+        let disabled_mod_path_zip = disabled_dir.join(format!("{}.disabled", mod_id));
+        let disabled_mod_path_zip_ext = disabled_dir.join(format!("{}.zip.disabled", mod_id));
+
+        let paths_to_try = vec![
+            mod_path.clone(),
+            mod_path_zip.clone(),
+            disabled_mod_path.clone(),
+            disabled_mod_path_zip.clone(),
+            disabled_mod_path_zip_ext.clone(),
+        ];
+
+        let mut deleted = false;
+        for path in paths_to_try {
+            if path.exists() {
+                if path.is_file() {
+                    std::fs::remove_file(&path)
+                        .map_err(|e| format!("Failed to delete mod file {}: {}", mod_id, e))?;
+                } else if path.is_dir() {
+                    std::fs::remove_dir_all(&path)
+                        .map_err(|e| format!("Failed to delete mod directory {}: {}", mod_id, e))?;
+                }
+                deleted = true;
+                break;
+            }
+        }
+
+        if !deleted {
+            return Err(format!("Mod {} not found to delete", mod_id));
+        }
+    }
+
+    save_mod_index(&index).map_err(|e| format!("Failed to save mod index: {}", e))?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -19,6 +19,7 @@ fn main() {
             mod_manager::get_mod_list,
             mod_manager::enable_mods,
             mod_manager::disable_mods,
+            mod_manager::delete_mods,
             mod_manager::read_modinfo,
             mod_manager::list_config_files,
             mod_manager::read_config,

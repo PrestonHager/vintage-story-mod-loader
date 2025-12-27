@@ -134,6 +134,34 @@ export default function ModList() {
     }
   }
 
+  async function deleteSelectedMods() {
+    const modIds = Array.from(selectedMods);
+    const modNames = mods
+      .filter(m => modIds.includes(m.id))
+      .map(m => m.name)
+      .join(", ");
+    
+    const count = modIds.length;
+    const message = count === 1
+      ? `Are you sure you want to permanently delete "${modNames}"?\n\nThis action cannot be undone. Consider disabling the mod instead.`
+      : `Are you sure you want to permanently delete ${count} mods?\n\nMods: ${modNames}\n\nThis action cannot be undone. Consider disabling the mods instead.`;
+    
+    if (!window.confirm(message)) {
+      return;
+    }
+    
+    try {
+      await invoke("delete_mods", { modsPath: modsPath, modIds });
+      await loadMods();
+      setSelectedMods(new Set());
+      showToast(`Deleted ${count} mod(s)`, "success");
+    } catch (error) {
+      console.error("Failed to delete mods:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      showToast(`Failed to delete mods: ${errorMessage}`, "error");
+    }
+  }
+
   const filteredMods = mods.filter(mod =>
     mod.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     mod.id.toLowerCase().includes(searchQuery.toLowerCase())
@@ -173,6 +201,16 @@ export default function ModList() {
             disabled={selectedMods.size === 0}
           >
             Disable Selected ({selectedMods.size})
+          </button>
+          <button
+            onClick={deleteSelectedMods}
+            disabled={selectedMods.size === 0}
+            style={{
+              backgroundColor: "#e74c3c",
+              color: "white",
+            }}
+          >
+            Delete Selected ({selectedMods.size})
           </button>
         </div>
       </div>

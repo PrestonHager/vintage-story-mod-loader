@@ -58,9 +58,7 @@ jobs:
             libatk1.0-dev \
             libcairo2-dev \
             libgdk-pixbuf2.0-dev \
-            libglib2.0-dev \
-            libgobject-2.0-dev \
-            libgio2.0-dev
+            libglib2.0-dev
 
       - name: Install dependencies
         run: |

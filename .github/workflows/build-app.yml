@@ -67,6 +67,19 @@ jobs:
           cd mod-loader
           npm install
 
+      - name: Generate Windows icon
+        if: matrix.platform == 'windows-latest'
+        run: |
+          cd mod-loader
+          # Remove corrupted icon.ico if it exists
+          if (Test-Path "src-tauri/icons/icon.ico") { Remove-Item "src-tauri/icons/icon.ico" -Force }
+          # Install png2icons for proper ICO generation
+          npm install -g png2icons
+          # Generate ICO file with multiple resolutions
+          png2icons src-tauri/icons/icon.ico src-tauri/icons/256x256.png -all
+        continue-on-error: true
+        shell: pwsh
+
       - name: Build application
         run: |
           cd mod-loader

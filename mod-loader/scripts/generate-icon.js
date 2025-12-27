@@ -25,12 +25,36 @@ if (pngFiles.length === 0) {
 }
 
 try {
-  // Try using to-ico package via npx
-  // to-ico syntax: to-ico input1.png input2.png ... -o output.ico
-  const command = `npx --yes to-ico ${pngFiles.map(f => `"${f}"`).join(' ')} -o "${outputPath}"`;
+  // Try using png2icons package via npx
+  // png2icons syntax: png2icons output.ico input.png -all
+  // Use the largest PNG (256x256) as the source
+  const sourcePng = pngFiles.find(f => f.includes('256x256')) || pngFiles[pngFiles.length - 1];
+  
   console.log(`Generating ICO file: ${outputPath}`);
-  console.log(`Using PNG files: ${pngFiles.join(', ')}`);
-  execSync(command, { stdio: 'inherit', cwd: path.join(__dirname, '..') });
+  console.log(`Using source PNG: ${sourcePng}`);
+  
+  // Try png2icons first
+  try {
+    const command = `npx --yes png2icons "${outputPath}" "${sourcePng}" -all`;
+    console.log(`Running: ${command}`);
+    execSync(command, { stdio: 'inherit', cwd: path.join(__dirname, '..') });
+  } catch (png2iconsError) {
+    console.log('png2icons failed, trying alternative method...');
+    // Fallback: try using sharp if available, or use a simple copy approach
+    // For now, let's try installing png2icons locally first
+    try {
+      // Install png2icons in the mod-loader directory
+      execSync('npm install --save-dev png2icons', { 
+        stdio: 'inherit', 
+        cwd: path.join(__dirname, '..') 
+      });
+      // Try running it via npx again
+      const command = `npx png2icons "${outputPath}" "${sourcePng}" -all`;
+      execSync(command, { stdio: 'inherit', cwd: path.join(__dirname, '..') });
+    } catch (installError) {
+      throw new Error(`Failed to generate ICO: ${installError.message}`);
+    }
+  }
   
   if (!fs.existsSync(outputPath)) {
     throw new Error(`Failed to generate ${outputPath}`);

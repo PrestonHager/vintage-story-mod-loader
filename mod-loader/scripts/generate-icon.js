@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 // Generate ICO file from PNG icons for Windows builds
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const iconsDir = path.join(__dirname, '../src-tauri/icons');
 const outputPath = path.join(iconsDir, 'icon.ico');
 

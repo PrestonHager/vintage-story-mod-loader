@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
-import type { ModPack } from "../types/mod";
+import type { ModPack, ModPackMetadata } from "../types/mod";
 import { downloadMod as apiDownloadMod, getModDownloadUrl as apiGetModDownloadUrl } from "./api";
 
 export async function exportModPack(pack: ModPack): Promise<void> {
@@ -68,14 +68,24 @@ export async function importModPack(): Promise<ModPack | null> {
     
     const pack = await invoke<ModPack>("import_mod_pack", { filePath: path });
     
+    // Validate and normalize the mod pack structure
+    // Create a new object with validated structure instead of mutating the original
+    // Ensure all required fields are present and of the expected shape
+    const validatedPack: ModPack = {
+      ...pack,
+      description: typeof pack.description === "string" ? pack.description : "",
+      mods: Array.isArray(pack.mods) ? pack.mods : [],
+      metadata: pack.metadata ?? ({} as ModPackMetadata),
+    };
+    
     console.log("[modpack.ts] Backend returned mod pack:", {
-      name: pack.name,
-      version: pack.version,
-      modsCount: pack.mods.length,
-      hasDescription: !!pack.description
+      name: validatedPack.name,
+      version: validatedPack.version,
+      modsCount: validatedPack.mods.length,
+      hasDescription: !!validatedPack.description
     });
-    console.log("[modpack.ts] Successfully imported mod pack:", pack.name);
-    return pack;
+    console.log("[modpack.ts] Successfully imported mod pack:", validatedPack.name);
+    return validatedPack;
   } catch (error) {
     console.error("[modpack.ts] Failed to import mod pack:", error);
     console.error("[modpack.ts] Error type:", error?.constructor?.name);

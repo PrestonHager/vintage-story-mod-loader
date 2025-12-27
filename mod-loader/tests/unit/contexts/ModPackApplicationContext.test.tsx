@@ -1,7 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '../test-utils';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, waitFor, fireEvent } from '../test-utils';
 import { ModPackApplicationProvider, useModPackApplication } from '../../../src/contexts/ModPackApplicationContext';
-import { act } from '@testing-library/react';
 import type { ModPack } from '../../../src/types/mod';
 
 const TestComponent = () => {
@@ -62,7 +61,7 @@ describe('ModPackApplicationContext', () => {
 
       // React Testing Library catches errors, so we need to check the error boundary
       // or use a different approach
-      const { container } = render(<TestComponent />, {
+      render(<TestComponent />, {
         wrapper: ({ children }) => <>{children}</>, // No provider wrapper
       });
 
@@ -103,16 +102,15 @@ describe('ModPackApplicationContext', () => {
       );
 
       const startButton = screen.getByText('Start');
-      act(() => {
-        startButton.click();
-      });
+      fireEvent.click(startButton);
 
       await waitFor(() => {
         const getControllerButton = screen.getByText('Get Controller');
-        act(() => {
-          getControllerButton.click();
-        });
+        fireEvent.click(getControllerButton);
       });
+      
+      // Verify controller was stored by checking console output or state
+      // This is a basic smoke test that the controller management works
     });
   });
 
@@ -125,16 +123,10 @@ describe('ModPackApplicationContext', () => {
       );
 
       const startButton = screen.getByText('Start');
-      act(() => {
-        startButton.click();
-      });
+      fireEvent.click(startButton);
 
-      await waitFor(() => {
-        const updateButton = screen.getByText('Update');
-        act(() => {
-          updateButton.click();
-        });
-      });
+      const updateButton = await screen.findByText('Update');
+      fireEvent.click(updateButton);
 
       await waitFor(() => {
         const progressElement = screen.getByTestId('progress');
@@ -153,16 +145,10 @@ describe('ModPackApplicationContext', () => {
       );
 
       const startButton = screen.getByText('Start');
-      act(() => {
-        startButton.click();
-      });
+      fireEvent.click(startButton);
 
-      await waitFor(() => {
-        const cancelButton = screen.getByText('Cancel');
-        act(() => {
-          cancelButton.click();
-        });
-      });
+      const cancelButton = await screen.findByText('Cancel');
+      fireEvent.click(cancelButton);
 
       await waitFor(() => {
         const progressElement = screen.getByTestId('progress');
@@ -182,16 +168,10 @@ describe('ModPackApplicationContext', () => {
       );
 
       const startButton = screen.getByText('Start');
-      act(() => {
-        startButton.click();
-      });
+      fireEvent.click(startButton);
 
-      await waitFor(() => {
-        const minimizeButton = screen.getByText('Minimize');
-        act(() => {
-          minimizeButton.click();
-        });
-      });
+      const minimizeButton = await screen.findByText('Minimize');
+      fireEvent.click(minimizeButton);
 
       await waitFor(() => {
         const progressElement = screen.getByTestId('progress');
@@ -210,16 +190,10 @@ describe('ModPackApplicationContext', () => {
       );
 
       const startButton = screen.getByText('Start');
-      act(() => {
-        startButton.click();
-      });
+      fireEvent.click(startButton);
 
-      await waitFor(() => {
-        const closeButton = screen.getByText('Close');
-        act(() => {
-          closeButton.click();
-        });
-      });
+      const closeButton = await screen.findByText('Close');
+      fireEvent.click(closeButton);
 
       await waitFor(() => {
         const progressElement = screen.getByTestId('progress');
@@ -238,16 +212,10 @@ describe('ModPackApplicationContext', () => {
       );
 
       const startButton = screen.getByText('Start');
-      act(() => {
-        startButton.click();
-      });
+      fireEvent.click(startButton);
 
-      await waitFor(() => {
-        const resetButton = screen.getByText('Reset');
-        act(() => {
-          resetButton.click();
-        });
-      });
+      const resetButton = await screen.findByText('Reset');
+      fireEvent.click(resetButton);
 
       await waitFor(() => {
         const progressElement = screen.getByTestId('progress');

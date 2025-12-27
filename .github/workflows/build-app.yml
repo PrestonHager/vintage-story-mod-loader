@@ -71,11 +71,13 @@ jobs:
           cd mod-loader
           # Remove corrupted icon.ico if it exists
           if (Test-Path "src-tauri/icons/icon.ico") { Remove-Item "src-tauri/icons/icon.ico" -Force }
-          # Install png2icons for proper ICO generation
-          npm install -g png2icons
-          # Generate ICO file with multiple resolutions
-          png2icons src-tauri/icons/icon.ico src-tauri/icons/256x256.png -all
-        continue-on-error: true
+          # Generate ICO file using Node.js script
+          node scripts/generate-icon.js
+          # Verify the icon was created
+          if (-not (Test-Path "src-tauri/icons/icon.ico")) {
+            Write-Error "Failed to generate icon.ico"
+            exit 1
+          }
         shell: pwsh
 
       - name: Build application

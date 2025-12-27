@@ -25,36 +25,34 @@ if (pngFiles.length === 0) {
 }
 
 try {
-  // Try using png2icons package via npx
-  // png2icons syntax: png2icons output.ico input.png -all
   // Use the largest PNG (256x256) as the source
   const sourcePng = pngFiles.find(f => f.includes('256x256')) || pngFiles[pngFiles.length - 1];
   
   console.log(`Generating ICO file: ${outputPath}`);
   console.log(`Using source PNG: ${sourcePng}`);
   
-  // Try png2icons first
-  try {
-    const command = `npx --yes png2icons "${outputPath}" "${sourcePng}" -all`;
-    console.log(`Running: ${command}`);
-    execSync(command, { stdio: 'inherit', cwd: path.join(__dirname, '..') });
-  } catch (png2iconsError) {
-    console.log('png2icons failed, trying alternative method...');
-    // Fallback: try using sharp if available, or use a simple copy approach
-    // For now, let's try installing png2icons locally first
-    try {
-      // Install png2icons in the mod-loader directory
-      execSync('npm install --save-dev png2icons', { 
-        stdio: 'inherit', 
-        cwd: path.join(__dirname, '..') 
-      });
-      // Try running it via npx again
-      const command = `npx png2icons "${outputPath}" "${sourcePng}" -all`;
-      execSync(command, { stdio: 'inherit', cwd: path.join(__dirname, '..') });
-    } catch (installError) {
-      throw new Error(`Failed to generate ICO: ${installError.message}`);
-    }
+  // Install png2icons as a dev dependency if not already installed
+  const modLoaderDir = path.join(__dirname, '..');
+  const nodeModulesPath = path.join(modLoaderDir, 'node_modules', 'png2icons');
+  
+  if (!fs.existsSync(nodeModulesPath)) {
+    console.log('Installing png2icons...');
+    execSync('npm install --save-dev png2icons', { 
+      stdio: 'inherit', 
+      cwd: modLoaderDir 
+    });
   }
+  
+  // Use png2icons programmatic API
+  const png2icons = (await import('png2icons')).default;
+  const pngBuffer = fs.readFileSync(sourcePng);
+  
+  console.log('Converting PNG to ICO...');
+  const icoBuffer = png2icons.createICO(pngBuffer, {
+    sizes: [16, 32, 48, 64, 128, 256]
+  });
+  
+  fs.writeFileSync(outputPath, icoBuffer);
   
   if (!fs.existsSync(outputPath)) {
     throw new Error(`Failed to generate ${outputPath}`);

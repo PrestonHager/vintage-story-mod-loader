@@ -53,6 +53,8 @@ pub struct ModIndexEntry {
     pub tags: Vec<String>,
     pub file_name: String,
     pub file_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dependencies: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -215,7 +217,7 @@ pub async fn get_mod_list(
                 side: entry.side.clone(),
                 requiredonclient: None,
                 requiredonserver: None,
-                dependencies: None,
+                dependencies: entry.dependencies.clone(),
             };
 
             eprintln!("Found zip mod: {} (enabled: {})", entry.modid, enabled);
@@ -298,7 +300,7 @@ pub async fn get_mod_list(
                                 side: entry.side.clone(),
                                 requiredonclient: None,
                                 requiredonserver: None,
-                                dependencies: None,
+                                dependencies: entry.dependencies.clone(),
                             };
 
                             eprintln!("Found disabled zip mod: {}", entry.modid);
@@ -332,7 +334,7 @@ pub async fn get_mod_list(
                                             side: new_entry.side.clone(),
                                             requiredonclient: None,
                                             requiredonserver: None,
-                                            dependencies: None,
+                                            dependencies: new_entry.dependencies.clone(),
                                         };
 
                                         mods.push(Mod {
@@ -704,6 +706,7 @@ fn index_zip_mod(zip_path: &Path) -> Result<ModIndexEntry, String> {
         tags: vec![],
         file_name: file_name.clone(),
         file_path: zip_path.to_string_lossy().to_string(),
+        dependencies: modinfo.dependencies.clone(),
     })
 }
 

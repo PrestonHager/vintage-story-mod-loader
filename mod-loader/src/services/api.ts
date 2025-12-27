@@ -60,3 +60,7 @@ export async function downloadMod(modId: string, downloadUrl: string, modsPath: 
   return await invoke("download_mod", { modId, downloadUrl, modsPath });
 }
 
+export async function checkModStatus(modId: string, modsPath: string) {
+  return await invoke("check_mod_status", { modId, modsPath });
+}
+

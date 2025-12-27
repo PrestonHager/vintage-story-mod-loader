@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { ModSearchResult, ModDatabaseMod } from "../types/mod";
+import type { ModSearchResult, ModDatabaseMod, ModStatus } from "../types/mod";
 
 // VS Mod DB API: http://mods.vintagestory.at/api
 // API docs: https://raw.githubusercontent.com/anegostudios/vsmoddb/refs/heads/master/README.md
@@ -60,7 +60,7 @@ export async function downloadMod(modId: string, downloadUrl: string, modsPath: 
   return await invoke("download_mod", { modId, downloadUrl, modsPath });
 }
 
-export async function checkModStatus(modId: string, modsPath: string) {
+export async function checkModStatus(modId: string, modsPath: string): Promise<ModStatus> {
   return await invoke("check_mod_status", { modId, modsPath });
 }
 

@@ -69,19 +69,20 @@ export async function importModPack(): Promise<ModPack | null> {
     const pack = await invoke<ModPack>("import_mod_pack", { filePath: path });
     
     // Validate and normalize the mod pack structure
-    // Ensure mods array exists, defaulting to empty array if missing
-    if (!pack.mods || !Array.isArray(pack.mods)) {
-      pack.mods = [];
-    }
+    // Create a new object with validated structure instead of mutating the original
+    const validatedPack: ModPack = {
+      ...pack,
+      mods: Array.isArray(pack.mods) ? pack.mods : [],
+    };
     
     console.log("[modpack.ts] Backend returned mod pack:", {
-      name: pack.name,
-      version: pack.version,
-      modsCount: pack.mods.length,
-      hasDescription: !!pack.description
+      name: validatedPack.name,
+      version: validatedPack.version,
+      modsCount: validatedPack.mods.length,
+      hasDescription: !!validatedPack.description
     });
-    console.log("[modpack.ts] Successfully imported mod pack:", pack.name);
-    return pack;
+    console.log("[modpack.ts] Successfully imported mod pack:", validatedPack.name);
+    return validatedPack;
   } catch (error) {
     console.error("[modpack.ts] Failed to import mod pack:", error);
     console.error("[modpack.ts] Error type:", error?.constructor?.name);

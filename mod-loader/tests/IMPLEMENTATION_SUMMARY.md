@@ -113,10 +113,31 @@ This document summarizes the test files that have been created as part of the te
 ## Test Statistics
 
 - **Total Test Files Created**: 12 (11 TypeScript/TSX, 1 Rust)
-- **Unit Tests**: 8 files
-- **Integration Tests**: 1 file
-- **E2E Tests**: 2 files
-- **Rust Tests**: 1 file
+- **Total Tests**: 136 (133 TypeScript/JavaScript, 3 Rust)
+- **Unit Tests**: 8 files (80 tests)
+  - Component Tests: 4 files (49 tests)
+  - Context Tests: 1 file (9 tests)
+  - Service Tests: 3 files (41 tests)
+- **Integration Tests**: 3 files (16 tests)
+- **E2E Tests**: 3 files (18 tests)
+- **Rust Tests**: 1 file (3 tests)
+
+### Test Count Breakdown by File
+- `modpack.test.ts`: 19 tests (including 14 negative tests)
+- `api.test.ts`: 18 tests
+- `ModPackCreator.test.tsx`: 17 tests
+- `ModPackImporter.test.tsx`: 13 tests
+- `ModPackProgressBar.test.tsx`: 10 tests
+- `ModPackApplicationContext.test.tsx`: 9 tests
+- `Toast.test.tsx`: 9 tests
+- `error-handling.spec.ts`: 8 E2E tests
+- `edge-cases.test.ts`: 7 integration tests
+- `mod-pack-management.spec.ts`: 6 E2E tests
+- `modpack-workflow.test.ts`: 5 integration tests
+- `storage.test.ts`: 4 tests
+- `api-modpack-integration.test.ts`: 4 integration tests
+- `basic.spec.ts`: 4 E2E tests
+- `mod_status.rs`: 3 Rust tests
 
 ## Important Notes
 

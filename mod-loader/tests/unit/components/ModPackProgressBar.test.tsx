@@ -213,13 +213,15 @@ describe('ModPackProgressBar', () => {
 
       // Simulate completion by setting isRunning to false
       // This would normally happen when applyModPack completes
-      // For this test, we'll just advance time
+      // Advance fake timers to trigger auto-dismiss behavior (3 seconds after completion)
       act(() => {
-        vi.advanceTimersByTime(1000);
+        vi.advanceTimersByTime(3000);
       });
 
-      // The progress bar should auto-dismiss after 1 second
-      // Note: This test may need adjustment based on actual implementation
+      // The progress bar should auto-dismiss after completion
+      await waitFor(() => {
+        expect(screen.queryByText('Applying Mod Pack')).not.toBeInTheDocument();
+      });
     });
   });
 

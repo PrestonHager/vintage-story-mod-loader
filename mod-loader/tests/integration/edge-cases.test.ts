@@ -14,6 +14,11 @@ describe('Edge Cases Integration Tests', () => {
 
   describe('Large Mod Packs', () => {
     it('should handle mod pack with 1000+ mods (performance test)', async () => {
+      // Performance test: Verifies that processing 1000 mods completes in reasonable time
+      // Note: This uses mocked API calls, so it tests the application logic performance,
+      // not network or I/O performance. The 60-second threshold is generous to account
+      // for CI/CD environments with varying performance characteristics.
+      // Adjust threshold based on real-world performance requirements.
       const largeModPack: ModPack = {
         name: 'Large Pack',
         version: '1.0.0',
@@ -51,12 +56,18 @@ describe('Edge Cases Integration Tests', () => {
       const startTime = Date.now();
       const result = await applyModPack(largeModPack, modsPath);
       const endTime = Date.now();
+      const duration = endTime - startTime;
 
+      // Verify the function completed and processed all mods
+      expect(result.success + result.failed + result.skipped).toBe(1000);
       expect(result.success).toBeGreaterThanOrEqual(0);
       expect(result.failed).toBeGreaterThanOrEqual(0);
       expect(result.skipped).toBeGreaterThanOrEqual(0);
-      // Performance check: should complete in reasonable time (adjust threshold as needed)
-      expect(endTime - startTime).toBeLessThan(60000); // 60 seconds
+      
+      // Performance check: should complete in reasonable time (60 seconds)
+      // This threshold may need adjustment based on actual performance requirements
+      expect(duration).toBeLessThan(60000);
+      console.log(`Performance test: Processed 1000 mods in ${duration}ms`);
     });
 
     it('should handle mod pack with mods that have very long names/descriptions', async () => {

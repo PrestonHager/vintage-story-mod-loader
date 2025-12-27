@@ -46,8 +46,7 @@ async fn test_check_mod_status_with_malformed_dependencies() {
     
     let result = check_mod_status("test-mod".to_string(), mods_path).await;
     
-    // Should either succeed (if malformed deps are ignored) or fail gracefully
-    // The exact behavior depends on implementation
-    assert!(result.is_ok() || result.is_err());
+    // Should return an error for malformed or missing dependencies
+    assert!(result.is_err(), "Expected error for malformed dependencies, got: {:?}", result);
 }
 
